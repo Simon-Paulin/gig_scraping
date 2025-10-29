@@ -14,7 +14,7 @@ services:
       - db_data:/var/lib/mysql
       - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
     ports:
-      - "3307:3306"
+      - "${MYSQL_PORT:-3307}:3306"
     networks:
       - app_network
     healthcheck:
@@ -34,8 +34,8 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
@@ -60,7 +60,7 @@ services:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     ports:
-      - "${BACKEND_PORT}:${BACKEND_PORT}"
+      - "${BACKEND_PORT:-8000}:${BACKEND_PORT:-8000}"
     environment:
       DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE}
       SECRET_KEY: ${DJANGO_SECRET_KEY:-django-insecure-change-me}
@@ -77,7 +77,7 @@ services:
       RABBITMQ_PORT: 5672
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-      BACKEND_PORT: ${BACKEND_PORT}
+      BACKEND_PORT: ${BACKEND_PORT:-8000}
     command: >
       sh -c "
         echo 'Waiting for database...' &&
@@ -87,7 +87,7 @@ services:
         echo 'Database is ready!' &&
         python manage.py migrate --noinput &&
         python manage.py collectstatic --noinput &&
-        gunicorn --bind 0.0.0.0:${BACKEND_PORT} --workers 4 --timeout 120 config.wsgi:application
+        gunicorn --bind 0.0.0.0:${BACKEND_PORT:-8000} --workers 4 --timeout 120 config.wsgi:application
       "
     depends_on:
       db:
@@ -128,6 +128,12 @@ services:
     networks:
       - app_network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$HOSTNAME || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # ============================================
   # CELERY Beat
@@ -159,6 +165,12 @@ services:
     networks:
       - app_network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'celery.*beat' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # ============================================
   # CONSUMER ODDS - Écoute queue RabbitMQ
@@ -191,6 +203,12 @@ services:
     networks:
       - app_network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'consumer_odds.py' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # ============================================
   # SELENIUM - Chrome standalone
@@ -199,11 +217,11 @@ services:
     image: selenium/standalone-chrome:latest
     container_name: gig-benchmark-selenium
     ports:
-      - "4444:4444"
-      - "7900:7900"
-    shm_size: '3gb'  # ← AUGMENTE LA MÉMOIRE PARTAGÉE
+      - "${SELENIUM_PORT:-4444}:4444"
+      - "${SELENIUM_VNC_PORT:-7900}:7900"
+    shm_size: '2gb'
     environment:
-      - SE_NODE_MAX_SESSIONS=1  # ← LIMITE À 1 SESSION
+      - SE_NODE_MAX_SESSIONS=1
       - SE_NODE_SESSION_TIMEOUT=300
       - SE_VNC_NO_PASSWORD=1
     networks:
@@ -212,9 +230,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 3G  # ← LIMITE LA RAM
-        reservations:
           memory: 2G
+        reservations:
+          memory: 1G
 
   # ============================================
   # SCRAPING Service
@@ -237,8 +255,7 @@ services:
       RABBITMQ_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
       RABBITMQ_QUEUE: scraping_tasks
-      BACKEND_API_URL: http://backend:${BACKEND_PORT}
-      BACKEND_URL: http://backend:8000
+      BACKEND_API_URL: http://backend:${BACKEND_PORT:-8000}
     command: python worker.py
     depends_on:
       db:
@@ -273,8 +290,8 @@ services:
       APP_ENV: dev
       APP_DEBUG: 1
       BACKEND_API_URL: http://backend:8000/api
-      PHP_MEMORY_LIMIT: ${PHP_MEMORY_LIMIT}
-      PHP_MAX_EXECUTION_TIME: ${PHP_MAX_EXECUTION_TIME}
+      PHP_MEMORY_LIMIT: ${PHP_MEMORY_LIMIT:-256M}
+      PHP_MAX_EXECUTION_TIME: ${PHP_MAX_EXECUTION_TIME:-180}
     depends_on:
       db:
         condition: service_healthy
@@ -291,7 +308,7 @@ services:
     image: nginx:alpine
     container_name: gig-benchmark-nginx
     ports:
-      - "${NGINX_PORT}:80"
+      - "${NGINX_PORT:-10014}:80"
       - "443:443"
     volumes:
       - ./frontend:/var/www/html:ro

@@ -12,13 +12,13 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_celery_beat',
     'rest_framework',
-    'corsheaders',  # ✅ Ajoute ça
+    'corsheaders',
     'core',
     # ... autres apps
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # ✅ Ajoute ça EN PREMIER
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -28,15 +28,15 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# ✅ Configuration CORS
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:10014",
     "http://nginx",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True  # ⚠️ Pour le développement seulement, à restreindre en prod
+CORS_ALLOW_ALL_ORIGINS = True
 
-# ✅ Autorise les credentials
+
 CORS_ALLOW_CREDENTIALS = True
 
 # ✅ Désactive CSRF pour les API (si tu utilises REST Framework)
