@@ -1,12 +1,12 @@
 from celery import shared_task
-import subprocess
+import requests
 import logging
 
 logger = logging.getLogger(__name__)
 
 @shared_task(name='auto_scrape_all_leagues')
 def auto_scrape_all_leagues():
-    """Automate Scraping"""
+    """Scraping automatique de toutes les ligues principales"""
     logger.info("=== DEBUT SCRAPING AUTOMATIQUE ===")
     
     leagues = [
@@ -22,39 +22,30 @@ def auto_scrape_all_leagues():
         try:
             logger.info(f"Scraping: {league}")
             
-            
-            result = subprocess.run(
-                ['python', '/app/send_task.py', league],
-                cwd='/app',
-                capture_output=True,
-                text=True,
+            # Appel à l'API de scraping Django
+            response = requests.post(
+                'http://backend:8000/api/scraping/trigger',
+                json={'scraper': league},
                 timeout=600
             )
             
-            success = result.returncode == 0
+            success = response.status_code == 200
             results.append({
                 'league': league,
                 'success': success,
-                'stdout': result.stdout[:200] if success else None,
-                'stderr': result.stderr[:200] if not success else None
+                'status_code': response.status_code
             })
             
-            status = 'OK' if success else 'ERREUR'
-            logger.info(f"{league}: {status}")
+            logger.info(f"{league}: {'OK' if success else 'ERREUR'} (status={response.status_code})")
             
-        except subprocess.TimeoutExpired:
-            logger.error(f"{league}: TIMEOUT (600s)")
+        except requests.exceptions.Timeout:
+            logger.error(f"{league}: TIMEOUT")
             results.append({'league': league, 'success': False, 'error': 'timeout'})
         except Exception as e:
-            logger.error(f"{league}: EXCEPTION - {str(e)}")
+            logger.error(f"{league}: {str(e)}")
             results.append({'league': league, 'success': False, 'error': str(e)})
     
     success_count = sum(1 for r in results if r.get('success'))
-    logger.info(f"=== FIN SCRAPING AUTOMATIQUE: {success_count}/{len(results)} succes ===")
+    logger.info(f"=== FIN: {success_count}/{len(results)} succes ===")
     
-    return {
-        'total': len(results),
-        'success': success_count,
-        'failed': len(results) - success_count,
-        'details': results
-    }
+    return results
