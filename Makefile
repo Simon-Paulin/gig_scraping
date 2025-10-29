@@ -76,6 +76,129 @@ seed-bookmakers: ## Insere les bookmakers
 	docker compose exec -T db mysql -uroot -p$(DB_ROOT_PASSWORD) $(DB_NAME) < database/seeds/04_bookmakers.sql
 
 # ============================================
+# SEEDS MANAGEMENT
+# ============================================
+seed-status: ## Affiche le statut des seeds
+	@echo "Statut des seeds dans la base de donnees:"
+	@echo "----------------------------------------"
+	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "\
+	SELECT \
+	    'Sports' as Seed, \
+	    COUNT(*) as Count, \
+	    CASE WHEN COUNT(*) > 0 THEN 'APPLIED' ELSE 'PENDING' END as Status \
+	FROM Sports \
+	UNION ALL \
+	SELECT \
+	    'Markets', \
+	    COUNT(*), \
+	    CASE WHEN COUNT(*) > 0 THEN 'APPLIED' ELSE 'PENDING' END \
+	FROM MarketNames \
+	UNION ALL \
+	SELECT \
+	    'Leagues', \
+	    COUNT(*), \
+	    CASE WHEN COUNT(*) > 0 THEN 'APPLIED' ELSE 'PENDING' END \
+	FROM Leagues \
+	UNION ALL \
+	SELECT \
+	    'Bookmakers', \
+	    COUNT(*), \
+	    CASE WHEN COUNT(*) > 0 THEN 'APPLIED' ELSE 'PENDING' END \
+	FROM Bookmakers;" 2>/dev/null || echo "Erreur: Base de donnees non accessible"
+
+seed-check: ## Verifie si les seeds sont necessaires
+	@echo "Verification des seeds..."
+	@SPORTS=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM Sports" 2>/dev/null); \
+	MARKETS=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM MarketNames" 2>/dev/null); \
+	LEAGUES=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM Leagues" 2>/dev/null); \
+	BOOKMAKERS=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM Bookmakers" 2>/dev/null); \
+	if [ "$$SPORTS" = "0" ] || [ "$$MARKETS" = "0" ] || [ "$$LEAGUES" = "0" ] || [ "$$BOOKMAKERS" = "0" ]; then \
+		echo "Seeds manquants detectes. Executez 'make seed-apply'"; \
+		exit 1; \
+	else \
+		echo "Tous les seeds sont appliques"; \
+	fi
+
+seed-apply: ## Applique tous les seeds manquants
+	@echo "Application des seeds..."
+	@SPORTS=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM Sports" 2>/dev/null); \
+	if [ "$$SPORTS" = "0" ]; then \
+		echo "Application: 01_sports.sql"; \
+		docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < database/seeds/01_sports.sql; \
+	else \
+		echo "Skip: 01_sports.sql (deja applique)"; \
+	fi
+	@MARKETS=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM MarketNames" 2>/dev/null); \
+	if [ "$$MARKETS" = "0" ]; then \
+		echo "Application: 02_markets.sql"; \
+		docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < database/seeds/02_markets.sql; \
+	else \
+		echo "Skip: 02_markets.sql (deja applique)"; \
+	fi
+	@LEAGUES=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM Leagues" 2>/dev/null); \
+	if [ "$$LEAGUES" = "0" ]; then \
+		echo "Application: 03_leagues.sql"; \
+		docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < database/seeds/03_leagues.sql; \
+	else \
+		echo "Skip: 03_leagues.sql (deja applique)"; \
+	fi
+	@BOOKMAKERS=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM Bookmakers" 2>/dev/null); \
+	if [ "$$BOOKMAKERS" = "0" ]; then \
+		echo "Application: 04_bookmakers.sql"; \
+		docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < database/seeds/04_bookmakers.sql; \
+	else \
+		echo "Skip: 04_bookmakers.sql (deja applique)"; \
+	fi
+	@echo "Seeds appliques avec succes"
+
+seed-force: ## Force la reapplication de tous les seeds
+	@echo "ATTENTION: Cette operation va SUPPRIMER toutes les donnees de reference"
+	@echo "Les cotes existantes seront conservees"
+	@read -p "Continuer ? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	@echo "Suppression des donnees de reference..."
+	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "\
+	SET FOREIGN_KEY_CHECKS=0; \
+	TRUNCATE TABLE Bookmakers; \
+	TRUNCATE TABLE Leagues; \
+	TRUNCATE TABLE MarketNames; \
+	TRUNCATE TABLE Sports; \
+	SET FOREIGN_KEY_CHECKS=1;"
+	@echo "Reapplication des seeds..."
+	$(MAKE) seed-all
+
+seed-refresh: ## Met a jour les seeds sans supprimer
+	@echo "Mise a jour des seeds..."
+	@echo "Sports..."
+	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < database/seeds/01_sports.sql
+	@echo "Markets..."
+	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < database/seeds/02_markets.sql
+	@echo "Leagues..."
+	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < database/seeds/03_leagues.sql
+	@echo "Bookmakers..."
+	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < database/seeds/04_bookmakers.sql
+	@echo "Seeds mis a jour avec succes"
+
+seed-validate: ## Valide l'integrite des seeds
+	@echo "Validation de l'integrite des seeds..."
+	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "\
+	SELECT 'Verification des Sports' as Test; \
+	SELECT CASE WHEN COUNT(*) >= 4 THEN 'PASS' ELSE 'FAIL' END as Status, \
+	       COUNT(*) as Expected_Min_4 \
+	FROM Sports; \
+	SELECT 'Verification des Markets' as Test; \
+	SELECT CASE WHEN COUNT(*) >= 20 THEN 'PASS' ELSE 'FAIL' END as Status, \
+	       COUNT(*) as Expected_Min_20 \
+	FROM MarketNames; \
+	SELECT 'Verification des Leagues' as Test; \
+	SELECT CASE WHEN COUNT(*) >= 20 THEN 'PASS' ELSE 'FAIL' END as Status, \
+	       COUNT(*) as Expected_Min_20 \
+	FROM Leagues; \
+	SELECT 'Verification des Bookmakers' as Test; \
+	SELECT CASE WHEN COUNT(*) >= 15 THEN 'PASS' ELSE 'FAIL' END as Status, \
+	       COUNT(*) as Expected_Min_15 \
+	FROM Bookmakers;"
+	
+# ============================================
 # LOGS
 # ============================================
 logs: ## Logs de tous les services
@@ -105,6 +228,11 @@ logs-rabbitmq: ## Logs RabbitMQ
 logs-all: ## Logs de tous les services
 	docker compose logs -f --tail=50
 
+logs-front-symfony:
+	sudo docker compose exec php tail -50 /var/www/html/var/log/dev.log
+
+logs-front-php:
+	sudo docker compose logs php --tail=30
 # ============================================
 # SHELLS
 # ============================================

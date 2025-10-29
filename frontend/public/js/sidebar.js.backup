@@ -424,10 +424,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             try {
                 const formData = new FormData();
-                formData.append('scraping_sport', sport);
-                formData.append('scraping_league', league);
+                formData.append('sport', sport);
+                formData.append('league', league);
                 
-                console.log('Lancement du scraping:', sport, league);
+                console.log('🚀 Lancement du scraping:', sport, league);
                 
                 const response = await fetch(scrapingForm.action, {
                     method: 'POST',

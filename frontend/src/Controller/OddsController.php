@@ -403,8 +403,8 @@ class OddsController extends AbstractController
     public function triggerScraping(Request $request, OddsApiService $apiService): Response
     {
         try {
-            $sport = $request->request->get('sport');
-            $league = $request->request->get('league');
+            $sport = $request->request->get('scraping_sport');
+            $league = $request->request->get('scraping_league');
             
             if (!$sport || !$league) {
                 return $this->json([

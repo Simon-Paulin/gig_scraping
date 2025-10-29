@@ -1,30 +1,8 @@
 -- =============================================
 -- Fichier: database/seeds/02_markets.sql
 -- Description: Types de marchés de paris par sport
--- Usage: mysql -u root -p GIG < database/seeds/02_markets.sql
 -- =============================================
 
-
--- =============================================
--- FOOTBALL - Marchés principaux
--- =============================================
-INSERT INTO Sports (code, name, created_at, updated_at) VALUES
-  ('FOOT', 'Football', NOW(), NOW()),
-  ('BASK', 'Basketball', NOW(), NOW()),
-  ('TENN', 'Tennis', NOW(), NOW()),
-  ('RUGB', 'Rugby', NOW(), NOW())
-ON DUPLICATE KEY UPDATE 
-  name = VALUES(name),
-  updated_at = NOW();
-
-SELECT 'Sports inserted successfully!' as Status;
-SELECT * FROM Sports ORDER BY name;
-EOF
-
-# ==========================================
-# 02_markets.sql
-# ==========================================
-cat > database/seeds/02_markets.sql << 'EOF'
 -- FOOTBALL - Marchés principaux
 INSERT INTO MarketNames (sport_id, code, name, created_at) VALUES
   ((SELECT id FROM Sports WHERE code='FOOT'), '1X2', '1X2 (Match Winner)', NOW()),
@@ -39,8 +17,7 @@ INSERT INTO MarketNames (sport_id, code, name, created_at) VALUES
   ((SELECT id FROM Sports WHERE code='FOOT'), 'LTS', 'Last Team to Score', NOW()),
   ((SELECT id FROM Sports WHERE code='FOOT'), 'HC', 'Handicap', NOW()),
   ((SELECT id FROM Sports WHERE code='FOOT'), 'HTFT', 'Half Time / Full Time', NOW())
-ON DUPLICATE KEY UPDATE 
-  name = VALUES(name);
+ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 -- BASKETBALL - Marchés principaux
 INSERT INTO MarketNames (sport_id, code, name, created_at) VALUES
@@ -49,8 +26,7 @@ INSERT INTO MarketNames (sport_id, code, name, created_at) VALUES
   ((SELECT id FROM Sports WHERE code='BASK'), 'HC', 'Handicap', NOW()),
   ((SELECT id FROM Sports WHERE code='BASK'), 'OU1Q', 'Over/Under - 1st Quarter', NOW()),
   ((SELECT id FROM Sports WHERE code='BASK'), 'OU1H', 'Over/Under - 1st Half', NOW())
-ON DUPLICATE KEY UPDATE 
-  name = VALUES(name);
+ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 -- TENNIS - Marchés principaux
 INSERT INTO MarketNames (sport_id, code, name, created_at) VALUES
@@ -58,8 +34,7 @@ INSERT INTO MarketNames (sport_id, code, name, created_at) VALUES
   ((SELECT id FROM Sports WHERE code='TENN'), 'SET', 'Set Winner', NOW()),
   ((SELECT id FROM Sports WHERE code='TENN'), 'OU', 'Over/Under Games', NOW()),
   ((SELECT id FROM Sports WHERE code='TENN'), 'HC', 'Handicap Games', NOW())
-ON DUPLICATE KEY UPDATE 
-  name = VALUES(name);
+ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 -- RUGBY - Marchés principaux
 INSERT INTO MarketNames (sport_id, code, name, created_at) VALUES
@@ -67,7 +42,7 @@ INSERT INTO MarketNames (sport_id, code, name, created_at) VALUES
   ((SELECT id FROM Sports WHERE code='RUGB'), 'OU', 'Over/Under Points', NOW()),
   ((SELECT id FROM Sports WHERE code='RUGB'), 'HC', 'Handicap', NOW()),
   ((SELECT id FROM Sports WHERE code='RUGB'), 'OU1H', 'Over/Under - 1st Half', NOW())
-ON DUPLICATE KEY UPDATE 
-  name = VALUES(name);
+ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 SELECT 'Markets inserted successfully!' as Status;
+SELECT COUNT(*) as Total FROM MarketNames;
