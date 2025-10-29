@@ -425,3 +425,42 @@ status: ## Affiche le statut complet
 	@echo ""
 	@echo "Health check:"
 	$(MAKE) health
+# ============================================
+# AUTO SCRAPING
+# ============================================
+auto-scrape-status: ## Statut du scraping automatique
+	@echo "Verification du scraping automatique..."
+	@docker compose exec backend python manage.py shell -c "\
+	from django_celery_beat.models import PeriodicTask; \
+	tasks = PeriodicTask.objects.filter(enabled=True); \
+	print(f'Taches actives: {tasks.count()}'); \
+	for t in tasks: print(f'  - {t.name}: {t.crontab} (enabled={t.enabled})')"
+
+auto-scrape-enable: ## Active le scraping automatique
+	@docker compose exec backend python manage.py shell -c "\
+	from django_celery_beat.models import PeriodicTask; \
+	task = PeriodicTask.objects.get(name='Scraping automatique toutes les 6h'); \
+	task.enabled = True; \
+	task.save(); \
+	print('Scraping automatique ACTIVE')"
+	@docker compose restart celery_beat
+
+auto-scrape-disable: ## Desactive le scraping automatique
+	@docker compose exec backend python manage.py shell -c "\
+	from django_celery_beat.models import PeriodicTask; \
+	task = PeriodicTask.objects.get(name='Scraping automatique toutes les 6h'); \
+	task.enabled = False; \
+	task.save(); \
+	print('Scraping automatique DESACTIVE')"
+	@docker compose restart celery_beat
+
+auto-scrape-test: ## Lance un scraping automatique immediatement
+	@echo "Test du scraping automatique..."
+	@docker compose exec backend python manage.py shell -c "\
+	from core.tasks import auto_scrape_all_leagues; \
+	result = auto_scrape_all_leagues.delay(); \
+	print(f'Task lancee avec ID: {result.id}')"
+	@echo "Suivre les logs: make logs-celery-worker
+
+auto-scrape-logs: ## Logs du scraping automatique
+	@docker compose logs celery_worker celery_beat --tail=50 -f
