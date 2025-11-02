@@ -57,7 +57,7 @@ def scrape_champions_league():
         driver.set_page_load_timeout(30)
         print("Connecté à Selenium")
         
-        # Aller sur la page Ligue 1
+        # Aller sur la page 
         url = "https://www.coteur.com/cotes/foot/europe/ligue-des-champions"
         print(f"\n{url}")
         driver.get(url)

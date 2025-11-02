@@ -368,6 +368,12 @@ scrape-liga: ## Lance scraping La Liga
 scrape-bundesliga: ## Lance scraping Bundesliga
 	docker compose exec scraping python send_task.py football.bundesliga
 
+scrape-champions-League: ## Lance scraping CL
+	docker compose exec scraping python send_task.py football.champions_league
+
+scrape-europa-League: ## Lance scraping EL
+	docker compose exec scraping python send_task.py football.europa_league
+
 scrape-all: ## Lance scraping toutes les ligues
 	$(MAKE) scrape-ligue1
 	$(MAKE) scrape-premier_league

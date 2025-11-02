@@ -1,5 +1,3 @@
-# scraping/src/football/la_liga.py
-
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -20,12 +18,11 @@ def safe_float(val):
     except (ValueError, TypeError):
         return None
 
-
-def scrape_bundesliga():
-    """Scrape TOUS les matchs de Bundesliga"""
+def scrape_europa_league():
+    """Scrape TOUS les matchs de Europa league"""
     
     print("\n" + "="*60)
-    print("DÉMARRAGE DU SCRAPING - Bundesliga")
+    print("DÉMARRAGE DU SCRAPING - Europa League")
     print("="*60)
     
     options = webdriver.ChromeOptions()
@@ -57,8 +54,8 @@ def scrape_bundesliga():
         driver.set_page_load_timeout(30)
         print("Connecté à Selenium")
         
-        # Aller sur la page bundesliga
-        url = "https://www.coteur.com/cotes/foot/allemagne/bundesliga-d1"
+        # Aller sur la page EL
+        url = "https://www.coteur.com/cotes/foot/europe/ligue-europa-1"
         print(f"\n{url}")
         driver.get(url)
         time.sleep(3)
@@ -150,7 +147,7 @@ def scrape_bundesliga():
                             "bookmaker": bookmaker,
                             "cotes": cote_dict,
                             "trj": trj,
-                            "league": "Liga Bundesliga",
+                            "league": "EUROPA LEAGUE",
                             "sport": "football"
                         }
                         

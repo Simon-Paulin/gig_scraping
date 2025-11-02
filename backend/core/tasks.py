@@ -15,6 +15,9 @@ def auto_scrape_all_leagues():
         'football.la_liga',
         'football.serie_a',
         'football.bundesliga'
+        'football.champions_league'
+        'football.europa_league'
+
     ]
     
     results = []

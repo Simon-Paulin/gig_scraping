@@ -49,6 +49,8 @@ def get_league_code(league_name):
         'La Liga': 'LA_LIGA',
         'Serie A': 'SERIE_A',
         'Bundesliga': 'BUNDESLIGA',
+        'Champions League': 'CHAMPIONS LEAGUE',
+        'Europa League': 'EUROPA LEAGUE',
     }
     return mapping.get(league_name, league_name.upper().replace(' ', ''))
 

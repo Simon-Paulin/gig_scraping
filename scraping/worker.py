@@ -58,11 +58,18 @@ except ImportError as e:
     scrape_bundesliga = None
 
 try:
-    from scraping.src.football.champions_league import scrape_champions_league
+    from src.football.champions_league import scrape_champions_league
     scrapers_loaded.append('football.champions_league')
 except ImportError as e:
     scrapers_failed.append(('football.champions_league', str(e)))
     scrape_champions_league = None
+
+try:
+    from src.football.europa_league import scrape_europa_league
+    scrapers_loaded.append('football.europa_league')
+except ImportError as e:
+    scrapers_failed.append(('football.europa_league', str(e)))
+    scrape_europa_league = None
 
 # ============================================================================
 # BASKETBALL - Import des scrapers
@@ -134,6 +141,8 @@ if scrape_bundesliga:
     SCRAPERS_REGISTRY['football.bundesliga'] = scrape_bundesliga
 if scrape_champions_league:
     SCRAPERS_REGISTRY['football.champions_league'] = scrape_champions_league
+if scrape_europa_league:
+    SCRAPERS_REGISTRY['football.europa_league'] = scrape_europa_league
 
 # Basketball
 if scrape_nba:
