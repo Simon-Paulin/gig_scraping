@@ -4,9 +4,9 @@ A scalable web scraping system for sports betting odds from [coteur.com](https:/
 
 ## Coverage
 
-- **Football**: 91 competitions (Champions League, Ligue 1, Premier League, La Liga, etc.)
+- **Football**: 105 competitions (Champions League, Ligue 1, Premier League, La Liga, etc.)
 - **Tennis**: 89 tournaments (ATP, WTA - Roland Garros, Wimbledon, US Open, etc.)
-- **Basketball**: 14 leagues (NBA, Euroleague, Betclic Elite, etc.)
+- **Basketball**: 15 leagues (NBA, Euroleague, Betclic Elite, etc.)
 - **Rugby**: 3 competitions (Top 14, Pro D2, Test-Match)
 
 **Total: 197 automated scrapers**
@@ -44,7 +44,7 @@ A scalable web scraping system for sports betting odds from [coteur.com](https:/
                                        │
                                        ▼
                               ┌─────────────────┐
-                              │   197 Scrapers  │
+                              │   205 Scrapers  │
                               │  (sport/*.py)   │
                               └────────┬────────┘
                                        │
@@ -88,19 +88,21 @@ A scalable web scraping system for sports betting odds from [coteur.com](https:/
 
 ### Two Scraping Modes:
 
-#### 🤖 Automated Scraping (Production Mode)
+#### Automated Scraping (Production Mode)
+
 **Trigger**: Celery Beat (every 6 hours)
 **Flow**: Celery Beat → Celery Worker → tasks.py → Django API → RabbitMQ → Scraping Worker
 **Scrapers**: Only 7 main leagues (configured in tasks.py)
 **Use Case**: Regular automatic updates for main competitions
 
-#### 👤 Manual Scraping (On-Demand Mode)
+#### Manual Scraping (On-Demand Mode)
+
 **Trigger**: User command or API call
 **Flow**: Django Command/API → RabbitMQ → Scraping Worker
 **Scrapers**: Any of the 197 available scrapers
 **Use Case**: On-demand scraping for specific competitions or testing
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 scraping/
@@ -132,11 +134,12 @@ scraping/
 └── README.md                       # This file
 ```
 
-## 🎯 Design Pattern: DRY (Don't Repeat Yourself)
+## Design Pattern: DRY (Don't Repeat Yourself)
 
 Instead of duplicating 200 lines of scraping logic across 197 files, we use a **centralized utility approach**:
 
-### Traditional Approach (❌ Bad)
+### Traditional Approach (Bad)
+
 ```python
 # bundesliga.py - 200 lines
 def scrape_bundesliga():
@@ -144,9 +147,11 @@ def scrape_bundesliga():
     driver.get("https://...")
     # ... 195 more lines ...
 ```
+
 **Result**: 200 lines × 197 files = **39,400 lines of duplicated code**
 
-### Our Approach (✅ Good)
+### Our Approach (Good)
+
 ```python
 # _scraper_utils.py - 200 lines (shared)
 def scrape_league(league_name, league_url, display_name):
@@ -162,14 +167,16 @@ def scrape_bundesliga():
         display_name="Bundesliga"
     )
 ```
+
 **Result**: 4 utils (800 lines) + 197 configs (2,561 lines) = **3,361 lines total**
 **Code reduction: 91%**
 
-## 🔧 How `_scraper_utils.py` Works
+## How `_scraper_utils.py` Works
 
 Each sport has its own `_scraper_utils.py` because of **different odds structures**:
 
 ### Football & Rugby (3 odds)
+
 ```python
 # Match can end in: Win, Draw, Loss
 cote_dict = {
@@ -181,6 +188,7 @@ cote_dict = {
 ```
 
 ### Tennis & Basketball (2 odds)
+
 ```python
 # Match has only 2 outcomes (no draw possible)
 cote_dict = {
@@ -191,7 +199,9 @@ cote_dict = {
 ```
 
 ### Core Functionality
+
 Each `scrape_league()` function:
+
 1. Initializes Selenium WebDriver (remote)
 2. Navigates to competition URL
 3. Waits for dynamic content (AJAX)
@@ -201,7 +211,7 @@ Each `scrape_league()` function:
 7. Publishes results to RabbitMQ
 8. Handles errors gracefully
 
-## 🚀 Usage
+## Usage
 
 ### 1. Generate All Scrapers
 
@@ -211,6 +221,7 @@ python3 generate_scrapers.py
 ```
 
 This will:
+
 - Create all 197 scraper files in their respective directories
 - Generate `/tmp/all_scrapers_info.txt` with import statements for `worker.py` and `tasks.py`
 
@@ -221,6 +232,7 @@ docker-compose up scraping-worker
 ```
 
 The worker will:
+
 - Connect to RabbitMQ
 - Load all 197 scrapers
 - Listen for scraping tasks
@@ -233,6 +245,7 @@ The worker will:
 Celery Beat automatically triggers scraping every 6 hours via the `auto_scrape_all_leagues()` task in [backend/core/tasks.py](../backend/core/tasks.py).
 
 **Automated leagues (7 total)**:
+
 - `football.ligue_1`
 - `football.premier_league`
 - `football.la_liga`
@@ -244,6 +257,7 @@ Celery Beat automatically triggers scraping every 6 hours via the `auto_scrape_a
 **Flow**: Celery Beat → Celery Worker executes task → Task calls Django API for each league → RabbitMQ → Scraping Worker → Selenium
 
 This runs automatically without any manual intervention. Check Celery Beat logs to see execution:
+
 ```bash
 docker-compose logs -f celery_beat
 ```
@@ -251,11 +265,13 @@ docker-compose logs -f celery_beat
 #### B. Manual Scraping (On-Demand - Any of 197 scrapers)
 
 ##### Via Django Management Command:
+
 ```bash
 docker-compose exec backend python manage.py scrape football.ligue_1
 ```
 
 ##### Via Django API:
+
 ```bash
 # Single scraper
 curl -X POST http://localhost:8000/api/scraping/trigger \
@@ -270,6 +286,7 @@ curl -X POST http://localhost:8000/api/scraping/all/tennis
 ```
 
 ##### Via Python (Direct RabbitMQ):
+
 ```python
 import pika
 import json
@@ -287,11 +304,12 @@ channel.basic_publish(
 )
 ```
 
-## 📝 Scraper Naming Convention
+## Scraper Naming Convention
 
 Scraper keys follow the pattern: `{sport}.{competition_slug}`
 
 Examples:
+
 - `football.ligue_1`
 - `football.champions_league`
 - `tennis.atp_miami`
@@ -299,11 +317,12 @@ Examples:
 - `basketball.nba`
 - `rugby.top_14`
 
-## 🔍 Adding a New Competition
+## Adding a New Competition
 
 ### Option 1: Manual (Quick)
 
 1. Create the scraper file:
+
 ```python
 # src/football/new_competition.py
 from ._scraper_utils import scrape_league
@@ -318,12 +337,14 @@ def scrape_new_competition():
 ```
 
 2. Add import to `worker.py`:
+
 ```python
 from src.football.new_competition import scrape_new_competition
 SCRAPERS_REGISTRY['football.new_competition'] = scrape_new_competition
 ```
 
 3. Add to `tasks.py`:
+
 ```python
 leagues = [
     # ...
@@ -334,6 +355,7 @@ leagues = [
 ### Option 2: Automated (Recommended)
 
 1. Add competition to `generate_scrapers.py`:
+
 ```python
 football_competitions = [
     # ...
@@ -342,20 +364,22 @@ football_competitions = [
 ```
 
 2. Re-run the generator:
+
 ```bash
 python3 generate_scrapers.py
 ```
 
 3. Update `worker.py` and `tasks.py` with content from `/tmp/all_scrapers_info.txt`
 
-## 🛠️ Modifying Scraping Logic
+## Modifying Scraping Logic
 
 ### If coteur.com changes HTML structure:
 
-**Before this architecture**: Edit 197 files ❌
-**With this architecture**: Edit 1 file (`_scraper_utils.py`) ✅
+**Before this architecture**: Edit 205 files
+**With this architecture**: Edit 1 file (`_scraper_utils.py`)
 
 Example:
+
 ```python
 # src/football/_scraper_utils.py
 
@@ -368,9 +392,10 @@ matches = driver.find_elements(By.XPATH, '//div[@class="match-item"]')
 
 All 197 scrapers automatically use the new selector!
 
-## 🧪 Testing
+## Testing
 
 ### Test a single scraper:
+
 ```python
 from src.football.ligue_1 import scrape_ligue_1
 
@@ -379,6 +404,7 @@ print(result)
 ```
 
 ### Test the utils directly:
+
 ```python
 from src.football._scraper_utils import scrape_league
 
@@ -389,7 +415,7 @@ result = scrape_league(
 )
 ```
 
-## 📊 Monitoring
+## Monitoring
 
 The worker provides detailed logging:
 
@@ -424,7 +450,7 @@ Rugby (3):
 ============================================================
 ```
 
-## 🔒 Error Handling
+## Error Handling
 
 The system includes robust error handling:
 
@@ -433,7 +459,7 @@ The system includes robust error handling:
 3. **Connection Errors**: Automatic retry with exponential backoff
 4. **Selenium Timeouts**: Graceful cleanup and error reporting
 
-## 🎓 Technical Concepts Demonstrated
+## Technical Concepts Demonstrated
 
 - **Template Method Pattern**: Shared algorithm with variable parameters
 - **DRY Principle**: Single source of truth for scraping logic
@@ -445,7 +471,7 @@ The system includes robust error handling:
 - **Meta-Programming**: Code generation via scripting
 - **Graceful Degradation**: Optional imports with fallbacks
 
-## 🔄 Complete Data Flow Examples
+## Complete Data Flow Examples
 
 ### Automatic Scraping Flow (Every 6 hours)
 
@@ -458,11 +484,11 @@ The system includes robust error handling:
    ```
 4. **Django API** (`/api/scraping/trigger`): Publishes to RabbitMQ `scraping_tasks`:
    ```json
-   {"scraper": "football.ligue_1", "params": {}}
+   { "scraper": "football.ligue_1", "params": {} }
    ```
 5. **Scraping Worker** (`worker.py`): Consumes message, dispatches to `scrape_ligue_1()`
 6. **Scraper** (`ligue_1.py`): Calls `scrape_league()` from `_scraper_utils.py`
-7. **_scraper_utils.py**:
+7. **\_scraper_utils.py**:
    - Launches Selenium WebDriver
    - Scrapes coteur.com
    - Publishes results to RabbitMQ `odds` queue:
@@ -470,7 +496,7 @@ The system includes robust error handling:
    {
      "match": "PSG - Marseille",
      "bookmaker": "Betclic",
-     "cotes": {"cote_1": 2.10, "cote_N": 3.20, "cote_2": 3.50},
+     "cotes": { "cote_1": 2.1, "cote_N": 3.2, "cote_2": 3.5 },
      "trj": 94.5,
      "league": "Ligue 1",
      "sport": "football"
@@ -484,21 +510,21 @@ The system includes robust error handling:
 1. **User**: Runs `python manage.py scrape football.ligue_1` OR calls API
 2. **Django Command/API**: Directly publishes to RabbitMQ `scraping_tasks`:
    ```json
-   {"scraper": "football.ligue_1", "params": {}}
+   { "scraper": "football.ligue_1", "params": {} }
    ```
 3. **Scraping Worker** (`worker.py`): Consumes message, dispatches to scraper
-4. *(Same as steps 6-9 above)*
+4. _(Same as steps 6-9 above)_
 
 **Key Difference**: Manual mode bypasses Celery Beat and Celery Worker, directly publishing to RabbitMQ.
 
-## 📈 Performance Metrics
+## Performance Metrics
 
 - **Code Reduction**: 91% (39,400 → 3,361 lines)
 - **Development Time**: ~2 hours (vs ~2-3 weeks manual)
 - **Maintainability**: Single point of modification
 - **Scalability**: Add competition in 2 minutes
 
-## 🤝 Contributing
+## Contributing
 
 When adding new sports or modifying scraping logic:
 
@@ -506,7 +532,3 @@ When adding new sports or modifying scraping logic:
 2. Use the generator script for bulk additions
 3. Test with a single competition before mass deployment
 4. Update this README if adding new sports
-
-## 📄 License
-
-This project is part of the GIG Benchmark platform.
