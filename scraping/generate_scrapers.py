@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Script pour générer automatiquement tous les scrapers pour football, tennis, basketball et rugby
+Script to automatically generate all scrapers for football, tennis, basketball and rugby
 """
 
 import os
 import re
 
 # =============================================================================
-# DONNÉES : Football (91 compétitions)
+# DATA: Football (91 competitions)
 # =============================================================================
 football_competitions = [
     {"name": "Coupe de France", "url": "https://www.coteur.com/cotes/foot/france/coupe-de-france"},
@@ -105,7 +105,7 @@ football_competitions = [
 ]
 
 # =============================================================================
-# DONNÉES : Tennis (89 compétitions)
+# DATA: Tennis (89 competitions)
 # =============================================================================
 tennis_competitions = [
     {"name": "ATP Miami", "url": "https://www.coteur.com/cotes/tennis/monde/atp-masters-miami"},
@@ -200,7 +200,7 @@ tennis_competitions = [
 ]
 
 # =============================================================================
-# DONNÉES : Basketball (14 compétitions)
+# DATA: Basketball (14 competitions)
 # =============================================================================
 basketball_competitions = [
     {"name": "NBA", "url": "https://www.coteur.com/cotes/basket/etats-unis/nba"},
@@ -220,7 +220,7 @@ basketball_competitions = [
 ]
 
 # =============================================================================
-# DONNÉES : Rugby (3 compétitions)
+# DATA: Rugby (3 competitions)
 # =============================================================================
 rugby_competitions = [
     {"name": "Top 14", "url": "https://www.coteur.com/cotes/rugby/france/top-14"},
@@ -230,8 +230,8 @@ rugby_competitions = [
 
 
 def slugify(text):
-    """Convertit un nom en slug pour nom de fichier"""
-    # Enlever les accents et caractères spéciaux
+    """Convert name to slug for filename"""
+    # Remove accents and special characters
     text = text.lower()
     text = re.sub(r'[éèêë]', 'e', text)
     text = re.sub(r'[àâä]', 'a', text)
@@ -240,10 +240,10 @@ def slugify(text):
     text = re.sub(r'[ùûü]', 'u', text)
     text = re.sub(r'[ç]', 'c', text)
 
-    # Remplacer les espaces et caractères spéciaux par des underscores
+    # Replace spaces and special characters with underscores
     text = re.sub(r'[^a-z0-9]+', '_', text)
 
-    # Enlever les underscores multiples et ceux en début/fin
+    # Remove multiple underscores and leading/trailing ones
     text = re.sub(r'_+', '_', text)
     text = text.strip('_')
 
@@ -251,7 +251,7 @@ def slugify(text):
 
 
 def generate_scraper_file(sport, comp):
-    """Génère un fichier scraper pour une compétition"""
+    """Generate scraper file for a competition"""
     filename = slugify(comp['name'])
     function_name = f"scrape_{filename}"
 
@@ -274,7 +274,7 @@ def {function_name}():
 
 def main():
     print("\n" + "="*60)
-    print("GÉNÉRATION DES SCRAPERS")
+    print("SCRAPERS GENERATION")
     print("="*60)
 
     sports = {
@@ -288,7 +288,7 @@ def main():
     all_scrapers_info = {}
 
     for sport, competitions in sports.items():
-        print(f"\n{sport.upper()} ({len(competitions)} compétitions)")
+        print(f"\n{sport.upper()} ({len(competitions)} competitions)")
         print("-" * 60)
 
         output_dir = f"src/{sport}"
@@ -297,7 +297,7 @@ def main():
         for comp in competitions:
             filename, content, function_name = generate_scraper_file(sport, comp)
 
-            # Créer le fichier
+            # Create file
             filepath = os.path.join(output_dir, f"{filename}.py")
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(content)
@@ -315,20 +315,20 @@ def main():
         all_scrapers_info[sport] = scrapers_info
 
     print("\n" + "="*60)
-    print(f"RÉSUMÉ")
+    print(f"SUMMARY")
     print("="*60)
-    print(f"Football: {len(football_competitions)} fichiers")
-    print(f"Tennis: {len(tennis_competitions)} fichiers")
-    print(f"Basketball: {len(basketball_competitions)} fichiers")
-    print(f"Rugby: {len(rugby_competitions)} fichiers")
-    print(f"TOTAL: {total_created} fichiers créés")
+    print(f"Football: {len(football_competitions)} files")
+    print(f"Tennis: {len(tennis_competitions)} files")
+    print(f"Basketball: {len(basketball_competitions)} files")
+    print(f"Rugby: {len(rugby_competitions)} files")
+    print(f"TOTAL: {total_created} files created")
     print("="*60 + "\n")
 
-    # Sauvegarder les informations pour worker.py
-    print("Sauvegarde des informations pour worker.py et tasks.py...")
+    # Save information for worker.py
+    print("Saving information for worker.py and tasks.py...")
     with open('/tmp/all_scrapers_info.txt', 'w', encoding='utf-8') as f:
         f.write("# " + "="*60 + "\n")
-        f.write("# IMPORTS POUR WORKER.PY\n")
+        f.write("# IMPORTS FOR WORKER.PY\n")
         f.write("# " + "="*60 + "\n\n")
 
         for sport, scrapers in all_scrapers_info.items():
@@ -337,7 +337,7 @@ def main():
                 f.write(f"from src.{sport}.{info['filename']} import {info['function_name']}\n")
 
         f.write("\n\n# " + "="*60 + "\n")
-        f.write("# REGISTRY POUR WORKER.PY\n")
+        f.write("# REGISTRY FOR WORKER.PY\n")
         f.write("# " + "="*60 + "\n\n")
 
         for sport, scrapers in all_scrapers_info.items():
@@ -346,7 +346,7 @@ def main():
                 f.write(f"SCRAPERS_REGISTRY['{info['scraper_key']}'] = {info['function_name']}\n")
 
         f.write("\n\n# " + "="*60 + "\n")
-        f.write("# LISTE POUR TASKS.PY\n")
+        f.write("# LIST FOR TASKS.PY\n")
         f.write("# " + "="*60 + "\n\n")
 
         f.write("leagues = [\n")
@@ -356,8 +356,8 @@ def main():
                 f.write(f"    '{info['scraper_key']}',\n")
         f.write("]\n")
 
-    print("Informations sauvegardées dans /tmp/all_scrapers_info.txt")
-    print("\nVous pouvez maintenant mettre à jour worker.py et tasks.py avec ces informations.")
+    print("Information saved in /tmp/all_scrapers_info.txt")
+    print("\nYou can now update worker.py and tasks.py with this information.")
 
 
 if __name__ == "__main__":

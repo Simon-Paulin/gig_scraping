@@ -30,9 +30,9 @@ def perform_scrapping():
         WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located((By.CSS_SELECTOR, ".d-flex[data-name]"))
         )
-        print("✅ Page chargée, les éléments de matchs sont présents.")
+        print(" Page chargée, les éléments de matchs sont présents.")
     except:
-        print("⚠️ Impossible de charger les éléments de la page :", url)
+        print(" Impossible de charger les éléments de la page :", url)
 
 
     # had match links
@@ -45,7 +45,7 @@ def perform_scrapping():
                 href = "https://www.coteur.com" + href
             match_links.append(href)
 
-    print(f"📌 Nombre de matchs trouvés : {len(match_links)}")
+    print(f" Nombre de matchs trouvés : {len(match_links)}")
 
 
     # browse matches
@@ -73,10 +73,10 @@ def perform_scrapping():
                 # publish in Rabbit
                 message = {"match": match_name, "bookmaker": bookmaker, "cotes": cote_dict}
                 channel.basic_publish(exchange="", routing_key="cotes", body=json.dumps(message))
-                print(f"📤 Envoyé : {message}")
+                print(f" Envoyé : {message}")
 
         except Exception as e:
-            print("⚠️ Erreur scraping :", e)
+            print(" Erreur scraping :", e)
 
     driver.quit()
     connection.close()

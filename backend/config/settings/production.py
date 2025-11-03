@@ -39,7 +39,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOW_CREDENTIALS = True
 
-# ✅ Désactive CSRF pour les API (si tu utilises REST Framework)
+#  Désactive CSRF pour les API (si tu utilises REST Framework)
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -47,8 +47,8 @@ REST_FRAMEWORK = {
     ],
 }
 
-# ✅ Ajoute les hosts autorisés
-ALLOWED_HOSTS = ['*']  # ⚠️ Pour le dev, à restreindre en prod
+#  Ajoute les hosts autorisés
+ALLOWED_HOSTS = ['*']  #  Pour le dev, à restreindre en prod
 
 # Database depuis les variables d'environnement Docker
 

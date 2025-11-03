@@ -37,7 +37,7 @@ class ScrapingService:
     
     def send_task(self, scraper: str, params: Optional[Dict] = None) -> Dict:
         """
-        Envoie UNE tâche de scraping au worker
+        Send UNE tâche de scraping au worker
         
         Exemple: send_task('football.ligue_1')
         """
@@ -58,7 +58,7 @@ class ScrapingService:
             # Déclarer la queue
             channel.queue_declare(queue=self.queue_name, durable=True)
             
-            # Créer le message
+            # Create le message
             message = {
                 'scraper': scraper,
                 'params': params
@@ -88,7 +88,7 @@ class ScrapingService:
     
     def send_multiple_tasks(self, scrapers: list) -> Dict:
         """
-        Envoie PLUSIEURS tâches de scraping
+        Send PLUSIEURS tâches de scraping
         
         Exemple: send_multiple_tasks(['football.ligue_1', 'football.la_liga'])
         """

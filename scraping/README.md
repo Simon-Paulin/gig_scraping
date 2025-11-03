@@ -1,6 +1,6 @@
 # Multi-Sport Scraping System
 
-A scalable web scraping system for sports betting odds from [coteur.com](https://www.coteur.com), supporting **197 competitions** across 4 sports.
+A scalable web scraping system for sports betting odds from [coteur.com](https://www.coteur.com), supporting **205 competitions** across 4 sports.
 
 ## Coverage
 
@@ -9,68 +9,68 @@ A scalable web scraping system for sports betting odds from [coteur.com](https:/
 - **Basketball**: 15 leagues (NBA, Euroleague, Betclic Elite, etc.)
 - **Rugby**: 3 competitions (Top 14, Pro D2, Test-Match)
 
-**Total: 197 automated scrapers**
+**Total: 205 automated scrapers**
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                         AUTOMATED SCHEDULING                              │
-│  ┌────────────────┐         ┌─────────────────┐                         │
-│  │ Celery Beat    │────────▶│ Celery Worker   │                         │
-│  │ (Every 6h)     │         │ (tasks.py)      │                         │
-│  └────────────────┘         └────────┬────────┘                         │
-│                                       │                                   │
-└───────────────────────────────────────┼───────────────────────────────────┘
-                                        │
-                                        ▼
-                              ┌─────────────────┐
-                              │  Django API     │
-                              │ (trigger scraping)│
-                              └────────┬────────┘
-                                       │
-                                       ▼
-                              ┌─────────────────┐
-                              │   RabbitMQ      │
-                              │ scraping_tasks  │◀──── Manual trigger
-                              │     Queue       │      (Django command)
-                              └────────┬────────┘
-                                       │
-                                       ▼
-                              ┌─────────────────┐
-                              │ Scraping Worker │
-                              │   (worker.py)   │
-                              └────────┬────────┘
-                                       │
-                                       ▼
-                              ┌─────────────────┐
-                              │   205 Scrapers  │
-                              │  (sport/*.py)   │
-                              └────────┬────────┘
-                                       │
-                                       ▼
-                              ┌─────────────────┐
-                              │ Selenium Grid   │
-                              │(Remote WebDriver)│
-                              └────────┬────────┘
-                                       │
-                                       ▼ Scrapes coteur.com
-                              ┌─────────────────┐
-                              │   RabbitMQ      │
-                              │   odds Queue    │
-                              └────────┬────────┘
-                                       │
-                                       ▼
-                              ┌─────────────────┐
-                              │ Consumer Odds   │
-                              │(consumer_odds.py)│
-                              └────────┬────────┘
-                                       │
-                                       ▼
-                              ┌─────────────────┐
-                              │  MySQL Database │
-                              │  (Odds stored)  │
-                              └─────────────────┘
+
+                         AUTOMATED SCHEDULING                              
+                                    
+   Celery Beat     Celery Worker                            
+   (Every 6h)               (tasks.py)                               
+                                    
+                                                                          
+
+                                        
+                                        
+                              
+                                Django API     
+                               (trigger scraping)
+                              
+                                       
+                                       
+                              
+                                 RabbitMQ      
+                               scraping_tasks   Manual trigger
+                                   Queue             (Django command)
+                              
+                                       
+                                       
+                              
+                               Scraping Worker 
+                                 (worker.py)   
+                              
+                                       
+                                       
+                              
+                                 205 Scrapers  
+                                (sport/*.py)   
+                              
+                                       
+                                       
+                              
+                               Selenium Grid   
+                              (Remote WebDriver)
+                              
+                                       
+                                        Scrapes coteur.com
+                              
+                                 RabbitMQ      
+                                 odds Queue    
+                              
+                                       
+                                       
+                              
+                               Consumer Odds   
+                              (consumer_odds.py)
+                              
+                                       
+                                       
+                              
+                                MySQL Database 
+                                (Odds stored)  
+                              
 ```
 
 ### Key Components:
@@ -92,51 +92,51 @@ A scalable web scraping system for sports betting odds from [coteur.com](https:/
 
 **Trigger**: Celery Beat (every 6 hours)
 **Flow**: Celery Beat → Celery Worker → tasks.py → Django API → RabbitMQ → Scraping Worker
-**Scrapers**: Only 7 main leagues (configured in tasks.py)
+**Scrapers**: All 205 scrapers (configured in tasks.py)
 **Use Case**: Regular automatic updates for main competitions
 
 #### Manual Scraping (On-Demand Mode)
 
 **Trigger**: User command or API call
 **Flow**: Django Command/API → RabbitMQ → Scraping Worker
-**Scrapers**: Any of the 197 available scrapers
+**Scrapers**: Any of the 205 available scrapers
 **Use Case**: On-demand scraping for specific competitions or testing
 
 ## Project Structure
 
 ```
 scraping/
-├── src/
-│   ├── football/
-│   │   ├── _scraper_utils.py      # Shared scraping logic (3 odds: 1, N, 2)
-│   │   ├── ligue_1.py             # Ligue 1 scraper
-│   │   ├── champions_league.py    # Champions League scraper
-│   │   └── ... (91 total)
-│   │
-│   ├── tennis/
-│   │   ├── _scraper_utils.py      # Shared scraping logic (2 odds: 1, 2)
-│   │   ├── atp_miami.py           # ATP Miami scraper
-│   │   ├── wta_roland_garros.py   # Roland Garros scraper
-│   │   └── ... (89 total)
-│   │
-│   ├── basketball/
-│   │   ├── _scraper_utils.py      # Shared scraping logic (2 odds: 1, 2)
-│   │   ├── nba.py                 # NBA scraper
-│   │   └── ... (14 total)
-│   │
-│   └── rugby/
-│       ├── _scraper_utils.py      # Shared scraping logic (3 odds: 1, N, 2)
-│       ├── top_14.py              # Top 14 scraper
-│       └── ... (3 total)
-│
-├── worker.py                       # RabbitMQ consumer/dispatcher
-├── generate_scrapers.py            # Script to generate all scrapers
-└── README.md                       # This file
+ src/
+    football/
+       _scraper_utils.py      # Shared scraping logic (3 odds: 1, N, 2)
+       ligue_1.py             # Ligue 1 scraper
+       champions_league.py    # Champions League scraper
+       ... (105 total)
+   
+    tennis/
+       _scraper_utils.py      # Shared scraping logic (2 odds: 1, 2)
+       atp_miami.py           # ATP Miami scraper
+       wta_roland_garros.py   # Roland Garros scraper
+       ... (89 total)
+   
+    basketball/
+       _scraper_utils.py      # Shared scraping logic (2 odds: 1, 2)
+       nba.py                 # NBA scraper
+       ... (15 total)
+   
+    rugby/
+        _scraper_utils.py      # Shared scraping logic (3 odds: 1, N, 2)
+        top_14.py              # Top 14 scraper
+        ... (3 total)
+
+ worker.py                       # RabbitMQ consumer/dispatcher
+ generate_scrapers.py            # Script to generate all scrapers
+ README.md                       # This file
 ```
 
 ## Design Pattern: DRY (Don't Repeat Yourself)
 
-Instead of duplicating 200 lines of scraping logic across 197 files, we use a **centralized utility approach**:
+Instead of duplicating 200 lines of scraping logic across 205 files, we use a **centralized utility approach**:
 
 ### Traditional Approach (Bad)
 
@@ -222,7 +222,7 @@ python3 generate_scrapers.py
 
 This will:
 
-- Create all 197 scraper files in their respective directories
+- Create all 205 scraper files in their respective directories
 - Generate `/tmp/all_scrapers_info.txt` with import statements for `worker.py` and `tasks.py`
 
 ### 2. Start the Worker
@@ -234,7 +234,7 @@ docker-compose up scraping-worker
 The worker will:
 
 - Connect to RabbitMQ
-- Load all 197 scrapers
+- Load all 205 scrapers
 - Listen for scraping tasks
 - Dispatch tasks to appropriate scrapers
 
@@ -244,7 +244,7 @@ The worker will:
 
 Celery Beat automatically triggers scraping every 6 hours via the `auto_scrape_all_leagues()` task in [backend/core/tasks.py](../backend/core/tasks.py).
 
-**Automated leagues (7 total)**:
+**Automated leagues **:
 
 - `football.ligue_1`
 - `football.premier_league`
@@ -253,6 +253,7 @@ Celery Beat automatically triggers scraping every 6 hours via the `auto_scrape_a
 - `football.bundesliga`
 - `football.champions_league`
 - `football.europa_league`
+- ...
 
 **Flow**: Celery Beat → Celery Worker executes task → Task calls Django API for each league → RabbitMQ → Scraping Worker → Selenium
 
@@ -428,24 +429,24 @@ RabbitMQ User: gig_user
 Queue: scraping_tasks
 ============================================================
 
-SCRAPERS CHARGÉS (197):
+SCRAPERS CHARGÉS (205):
 
-Football (91):
-   ✓ football.ligue_1
-   ✓ football.champions_league
+Football (105):
+    football.ligue_1
+    football.champions_league
    ...
 
 Tennis (89):
-   ✓ tennis.atp_miami
-   ✓ tennis.wta_roland_garros
+    tennis.atp_miami
+    tennis.wta_roland_garros
    ...
 
-Basketball (14):
-   ✓ basketball.nba
+Basketball (15):
+    basketball.nba
    ...
 
 Rugby (3):
-   ✓ rugby.top_14
+    rugby.top_14
    ...
 ============================================================
 ```

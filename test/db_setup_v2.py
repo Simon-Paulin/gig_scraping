@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS odds (
 )
 """)
 
-print("✅ Base et table créées avec succès !")
+print(" Base et table créées avec succès !")
 
 db.commit()
 cursor.close()

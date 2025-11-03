@@ -1,5 +1,5 @@
 """
-Consumer RabbitMQ pour stocker les cotes en BDD
+RabbitMQ Consumer to store odds in database
 """
 import sys
 sys.path.insert(0, "/app")
@@ -97,10 +97,10 @@ def callback(ch, method, properties, body):
         try:
             sport = Sport.objects.get(code=sport_code)
         except Sport.DoesNotExist:
-            print(f"Sport {sport_code} introuvable")
+            print(f"Sport {sport_code} not found")
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
-        
+
         # 2. League
         league_code = get_league_code(league_name)
         league, created = League.objects.get_or_create(
@@ -112,17 +112,17 @@ def callback(ch, method, properties, body):
             }
         )
         if created:
-            print(f"Ligue: {league.name} ({league_code})")
-        
+            print(f"League: {league.name} ({league_code})")
+
         # 3. Teams
         home_team_name, away_team_name = parse_team_names(match_str)
         if not home_team_name or not away_team_name:
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
-        
+
         home_team, _ = Team.objects.get_or_create(league=league, name=home_team_name)
         away_team, _ = Team.objects.get_or_create(league=league, name=away_team_name)
-        
+
         # 4. Match
         if match_date_str:
             try:
@@ -136,7 +136,7 @@ def callback(ch, method, properties, body):
             tomorrow = datetime.now() + timedelta(days=1)
             match_date = tomorrow.replace(hour=20, minute=0, second=0, microsecond=0)
             match_date = timezone.make_aware(match_date)
-        
+
         match, created = Match.objects.get_or_create(
             league=league,
             home_team=home_team,
@@ -146,27 +146,27 @@ def callback(ch, method, properties, body):
                 'status': 'scheduled'
             }
         )
-        
+
         if created:
             print(f"Match: {home_team.name} vs {away_team.name} - {match_date.strftime('%d/%m %H:%M')}")
-        
+
         # 5. Market
         try:
             market = MarketName.objects.get(sport=sport, code='1X2')
         except MarketName.DoesNotExist:
-            print(f"Market 1X2 introuvable")
+            print(f"Market 1X2 not found")
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
-        
+
         # 6. Bookmaker
         bookmaker_code = get_bookmaker_code(bookmaker_name)
         try:
             bookmaker = Bookmaker.objects.get(code=bookmaker_code)
         except Bookmaker.DoesNotExist:
-            print(f"Bookmaker {bookmaker_code} introuvable")
+            print(f"Bookmaker {bookmaker_code} not found")
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
-        
+
         # 7. Odds
         scraped_at = timezone.now()
         odds_count = 0
@@ -185,10 +185,10 @@ def callback(ch, method, properties, body):
                     scraped_at=scraped_at
                 )
                 odds_count += 1
-        
-        print(f"{odds_count} cotes (TRJ: {trj}%)")
+
+        print(f"{odds_count} odds (TRJ: {trj}%)")
         ch.basic_ack(delivery_tag=method.delivery_tag)
-        
+
     except Exception as e:
         print(f"{e}")
         import traceback
@@ -198,18 +198,18 @@ def callback(ch, method, properties, body):
 
 def start_consumer():
     print("\n" + "="*60)
-    print("CONSUMER ODDS")
+    print("ODDS CONSUMER")
     print("="*60)
     print(f"RabbitMQ: {RABBITMQ_HOST}:{RABBITMQ_PORT}\n")
-    
+
     credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
     connection = pika.BlockingConnection(
         pika.ConnectionParameters(host=RABBITMQ_HOST, port=int(RABBITMQ_PORT), credentials=credentials)
     )
     channel = connection.channel()
     channel.queue_declare(queue='odds', durable=True)
-    
-    print("En écoute...\n")
+
+    print("Listening...\n")
     
     channel.basic_consume(queue='odds', on_message_callback=callback, auto_ack=False)
     

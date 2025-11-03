@@ -14,7 +14,7 @@ import os
 
 
 def safe_float(val):
-    """Convertit une valeur en float de manière sécurisée"""
+    """Convert value to float safely"""
     try:
         return float(val)
     except (ValueError, TypeError):
@@ -38,7 +38,7 @@ def scrape_league(league_name, league_url, display_name=None):
         display_name = league_name
 
     print("\n" + "="*60)
-    print(f"DÉMARRAGE DU SCRAPING - {display_name}")
+    print(f"SCRAPING STARTED - {display_name}")
     print("="*60)
 
     options = webdriver.ChromeOptions()
@@ -53,29 +53,29 @@ def scrape_league(league_name, league_url, display_name=None):
     channel = None
 
     try:
-        # Connexion RabbitMQ
+        # RabbitMQ Connection
         credentials = pika.PlainCredentials('gig_user', 'gig_password_2025')
         connection = pika.BlockingConnection(
             pika.ConnectionParameters('rabbitmq', 5672, '/', credentials)
         )
         channel = connection.channel()
         channel.queue_declare(queue='odds', durable=True)
-        print("Connecté à RabbitMQ")
+        print("Connected to RabbitMQ")
 
-        # Connexion Selenium Remote
+        # Selenium Remote Connection
         driver = webdriver.Remote(
             command_executor='http://selenium:4444/wd/hub',
             options=options
         )
         driver.set_page_load_timeout(30)
-        print("Connecté à Selenium")
+        print("Connected to Selenium")
 
-        # Aller sur la page de la compétition
+        # Go to competition page
         print(f"\n{league_url}")
         driver.get(league_url)
         time.sleep(3)
 
-        # Accepter les cookies
+        # Accept cookies
         try:
             cookie_btn = driver.find_element(By.ID, "cookie_consent_use_all_cookies")
             cookie_btn.click()
@@ -83,7 +83,7 @@ def scrape_league(league_name, league_url, display_name=None):
         except:
             pass
 
-        # Récupérer TOUS les liens de matchs
+        # Get ALL match links
         link_elements = driver.find_elements(By.CSS_SELECTOR, "a.text-decoration-none")
         match_links = []
         for elem in link_elements:
@@ -93,10 +93,10 @@ def scrape_league(league_name, league_url, display_name=None):
                     href = "https://www.coteur.com" + href
                 match_links.append(href)
 
-        match_links = list(set(match_links))  # Dédupliquer
-        print(f"{len(match_links)} matchs trouvés\n")
+        match_links = list(set(match_links))  # Deduplicate
+        print(f"{len(match_links)} matches found\n")
 
-        # SCRAPER TOUS LES MATCHS
+        # SCRAPE ALL MATCHES
         matches_scraped = 0
         odds_sent = 0
 
@@ -109,16 +109,16 @@ def scrape_league(league_name, league_url, display_name=None):
                 driver.get(match_url)
                 time.sleep(3)
 
-                # Récupérer le titre du match
+                # Get match title
                 try:
                     title_element = driver.find_element(By.CSS_SELECTOR, ".page-title")
                     title = title_element.text.strip()
                     print(f"{title}")
                 except:
-                    print("Pas de titre, skip")
+                    print("No title, skip")
                     continue
 
-                # Récupérer la date (optionnel)
+                # Get date (optional)
                 date_obj = None
                 try:
                     span_elems = driver.find_elements(By.CSS_SELECTOR, "span.small")
@@ -134,7 +134,7 @@ def scrape_league(league_name, league_url, display_name=None):
                 except:
                     pass
 
-                # Récupérer TOUS les bookmakers
+                # Get ALL bookmakers
                 rows = driver.find_elements(By.CSS_SELECTOR, ".d-flex[data-name]")
                 print(f"{len(rows)} bookmakers")
 
@@ -149,13 +149,13 @@ def scrape_league(league_name, league_url, display_name=None):
                             "cote_2": safe_float(odds[1].text.strip())
                         }
 
-                        # Calculer le TRJ (pour basket, seulement 2 cotes)
+                        # Calculate TRJ (pour basket, seulement 2 cotes)
                         if cote_dict["cote_1"] and cote_dict["cote_2"]:
                             trj = round((1 / (1/cote_dict["cote_1"] + 1/cote_dict["cote_2"])) * 100, 2)
                         else:
                             trj = None
 
-                        # Créer le message
+                        # Create message
                         message = {
                             "match": title,
                             "match_date": date_obj.strftime("%Y-%m-%d %H:%M:%S") if date_obj else None,
@@ -166,7 +166,7 @@ def scrape_league(league_name, league_url, display_name=None):
                             "sport": "basketball"
                         }
 
-                        # Envoyer à RabbitMQ
+                        # Send to RabbitMQ
                         channel.basic_publish(
                             exchange='',
                             routing_key='odds',
@@ -180,14 +180,14 @@ def scrape_league(league_name, league_url, display_name=None):
                 matches_scraped += 1
 
             except Exception as e:
-                print(f"Erreur: {e}")
+                print(f"Error: {e}")
                 continue
 
         print(f"\n{'='*60}")
-        print(f"SCRAPING TERMINÉ")
+        print(f"SCRAPING COMPLETED")
         print(f"{'='*60}")
-        print(f"Matchs scrapés: {matches_scraped}/{len(match_links)}")
-        print(f"Cotes envoyées: {odds_sent}")
+        print(f"Matches scraped: {matches_scraped}/{len(match_links)}")
+        print(f"Odds sent: {odds_sent}")
         print(f"{'='*60}\n")
 
         return {
@@ -197,7 +197,7 @@ def scrape_league(league_name, league_url, display_name=None):
         }
 
     except Exception as e:
-        print(f"\nERREUR CRITIQUE: {e}")
+        print(f"\nCRITICAL ERROR: {e}")
         import traceback
         traceback.print_exc()
         return None

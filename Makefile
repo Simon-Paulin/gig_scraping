@@ -7,79 +7,79 @@ export
 # HELP
 # ============================================
 help:
-	@echo "Commandes disponibles:"
+	@echo "Available commands:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # ============================================
 # DOCKER
 # ============================================
-build: ## Construit les images
+build: ## Build images
 	docker compose build
 
-build-scrap: ## Construit image du scraping
+build-scrap: ## Build scraping image
 	docker compose build scraping
 
-up: ## Demarre tous les services
+up: ## Start all services
 	docker compose up -d
 
-down: ## Arrete tous les services
+down: ## Stop all services
 	docker compose down
 
-restart: down up ## Redémarre tous les services
+restart: down up ## Restart all services
 
-ps: ## Liste les services
+ps: ## List services
 	docker compose ps
 
-clean: ## Nettoie volumes et containers
+clean: ## Clean volumes and containers
 	docker compose down -v
 	docker system prune -f
 
-cache: ## Vide cache symfony
+cache: ## Clear symfony cache
 	docker compose exec php php bin/console cache:clear
 
 # ============================================
 # MIGRATIONS
 # ============================================
-makemigrations: ## Cree les migrations Django
+makemigrations: ## Create Django migrations
 	docker compose exec backend python manage.py makemigrations
 
-migrate: ## Applique les migrations
+migrate: ## Apply migrations
 	docker compose exec backend python manage.py migrate
 
-migrate-fake: ## Marque les migrations comme appliquees
+migrate-fake: ## Mark migrations as applied
 	docker compose exec backend python manage.py migrate --fake
 
-showmigrations: ## Affiche les migrations
+showmigrations: ## Show migrations
 	docker compose exec backend python manage.py showmigrations
 
 # ============================================
 # SEEDS
 # ============================================
-seed-all: ## Insere toutes les donnees de reference
-	@echo "Insertion des seeds..."
+seed-all: ## Insert all reference data
+	@echo "Inserting seeds..."
 	docker compose exec -T db mysql -uroot -p$(DB_ROOT_PASSWORD) $(DB_NAME) < database/seeds/01_sports.sql
 	docker compose exec -T db mysql -uroot -p$(DB_ROOT_PASSWORD) $(DB_NAME) < database/seeds/02_markets.sql
 	docker compose exec -T db mysql -uroot -p$(DB_ROOT_PASSWORD) $(DB_NAME) < database/seeds/03_leagues.sql
 	docker compose exec -T db mysql -uroot -p$(DB_ROOT_PASSWORD) $(DB_NAME) < database/seeds/04_bookmakers.sql
-	@echo "Seeds inseres avec succes"
+	@echo "Seeds inserted successfully"
 
-seed-sports: ## Insere les sports
+seed-sports: ## Insert sports
 	docker compose exec -T db mysql -uroot -p$(DB_ROOT_PASSWORD) $(DB_NAME) < database/seeds/01_sports.sql
 
-seed-markets: ## Insere les marches
+seed-markets: ## Insert markets
 	docker compose exec -T db mysql -uroot -p$(DB_ROOT_PASSWORD) $(DB_NAME) < database/seeds/02_markets.sql
 
-seed-leagues: ## Insere les ligues
+seed-leagues: ## Insert leagues
 	docker compose exec -T db mysql -uroot -p$(DB_ROOT_PASSWORD) $(DB_NAME) < database/seeds/03_leagues.sql
 
-seed-bookmakers: ## Insere les bookmakers
+seed-bookmakers: ## Insert bookmakers
 	docker compose exec -T db mysql -uroot -p$(DB_ROOT_PASSWORD) $(DB_NAME) < database/seeds/04_bookmakers.sql
 
 # ============================================
 # SEEDS MANAGEMENT
 # ============================================
-seed-status: ## Affiche le statut des seeds
-	@echo "Statut des seeds dans la base de donnees:"
+seed-status: ## Show seeds status
+	@echo "Seeds status in database:"
 	@echo "----------------------------------------"
 	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "\
 	SELECT \
@@ -104,58 +104,58 @@ seed-status: ## Affiche le statut des seeds
 	    'Bookmakers', \
 	    COUNT(*), \
 	    CASE WHEN COUNT(*) > 0 THEN 'APPLIED' ELSE 'PENDING' END \
-	FROM Bookmakers;" 2>/dev/null || echo "Erreur: Base de donnees non accessible"
+	FROM Bookmakers;" 2>/dev/null || echo "Error: Database not accessible"
 
-seed-check: ## Verifie si les seeds sont necessaires
-	@echo "Verification des seeds..."
+seed-check: ## Check if seeds are needed
+	@echo "Checking seeds..."
 	@SPORTS=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM Sports" 2>/dev/null); \
 	MARKETS=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM MarketNames" 2>/dev/null); \
 	LEAGUES=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM Leagues" 2>/dev/null); \
 	BOOKMAKERS=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM Bookmakers" 2>/dev/null); \
 	if [ "$$SPORTS" = "0" ] || [ "$$MARKETS" = "0" ] || [ "$$LEAGUES" = "0" ] || [ "$$BOOKMAKERS" = "0" ]; then \
-		echo "Seeds manquants detectes. Executez 'make seed-apply'"; \
+		echo "Missing seeds detected. Run 'make seed-apply'"; \
 		exit 1; \
 	else \
-		echo "Tous les seeds sont appliques"; \
+		echo "All seeds are applied"; \
 	fi
 
-seed-apply: ## Applique tous les seeds manquants
-	@echo "Application des seeds..."
+seed-apply: ## Apply all missing seeds
+	@echo "Applying seeds..."
 	@SPORTS=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM Sports" 2>/dev/null); \
 	if [ "$$SPORTS" = "0" ]; then \
-		echo "Application: 01_sports.sql"; \
+		echo "Applying: 01_sports.sql"; \
 		docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < database/seeds/01_sports.sql; \
 	else \
-		echo "Skip: 01_sports.sql (deja applique)"; \
+		echo "Skip: 01_sports.sql (already applied)"; \
 	fi
 	@MARKETS=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM MarketNames" 2>/dev/null); \
 	if [ "$$MARKETS" = "0" ]; then \
-		echo "Application: 02_markets.sql"; \
+		echo "Applying: 02_markets.sql"; \
 		docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < database/seeds/02_markets.sql; \
 	else \
-		echo "Skip: 02_markets.sql (deja applique)"; \
+		echo "Skip: 02_markets.sql (already applied)"; \
 	fi
 	@LEAGUES=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM Leagues" 2>/dev/null); \
 	if [ "$$LEAGUES" = "0" ]; then \
-		echo "Application: 03_leagues.sql"; \
+		echo "Applying: 03_leagues.sql"; \
 		docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < database/seeds/03_leagues.sql; \
 	else \
-		echo "Skip: 03_leagues.sql (deja applique)"; \
+		echo "Skip: 03_leagues.sql (already applied)"; \
 	fi
 	@BOOKMAKERS=$$(docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -sN -e "SELECT COUNT(*) FROM Bookmakers" 2>/dev/null); \
 	if [ "$$BOOKMAKERS" = "0" ]; then \
-		echo "Application: 04_bookmakers.sql"; \
+		echo "Applying: 04_bookmakers.sql"; \
 		docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < database/seeds/04_bookmakers.sql; \
 	else \
-		echo "Skip: 04_bookmakers.sql (deja applique)"; \
+		echo "Skip: 04_bookmakers.sql (already applied)"; \
 	fi
-	@echo "Seeds appliques avec succes"
+	@echo "Seeds applied successfully"
 
-seed-force: ## Force la reapplication de tous les seeds
-	@echo "ATTENTION: Cette operation va SUPPRIMER toutes les donnees de reference"
-	@echo "Les cotes existantes seront conservees"
-	@read -p "Continuer ? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
-	@echo "Suppression des donnees de reference..."
+seed-force: ## Force reapply all seeds
+	@echo "WARNING: This operation will DELETE all reference data"
+	@echo "Existing odds will be preserved"
+	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	@echo "Deleting reference data..."
 	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "\
 	SET FOREIGN_KEY_CHECKS=0; \
 	TRUNCATE TABLE Bookmakers; \
@@ -163,11 +163,11 @@ seed-force: ## Force la reapplication de tous les seeds
 	TRUNCATE TABLE MarketNames; \
 	TRUNCATE TABLE Sports; \
 	SET FOREIGN_KEY_CHECKS=1;"
-	@echo "Reapplication des seeds..."
+	@echo "Reapplying seeds..."
 	$(MAKE) seed-all
 
-seed-refresh: ## Met a jour les seeds sans supprimer
-	@echo "Mise a jour des seeds..."
+seed-refresh: ## Update seeds without deleting
+	@echo "Updating seeds..."
 	@echo "Sports..."
 	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < database/seeds/01_sports.sql
 	@echo "Markets..."
@@ -176,10 +176,10 @@ seed-refresh: ## Met a jour les seeds sans supprimer
 	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < database/seeds/03_leagues.sql
 	@echo "Bookmakers..."
 	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < database/seeds/04_bookmakers.sql
-	@echo "Seeds mis a jour avec succes"
+	@echo "Seeds updated successfully"
 
-seed-validate: ## Valide l'integrite des seeds
-	@echo "Validation de l'integrite des seeds..."
+seed-validate: ## Validate seeds integrity
+	@echo "Validating seeds integrity..."
 	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "\
 	SELECT 'Verification des Sports' as Test; \
 	SELECT CASE WHEN COUNT(*) >= 4 THEN 'PASS' ELSE 'FAIL' END as Status, \
@@ -201,31 +201,31 @@ seed-validate: ## Valide l'integrite des seeds
 # ============================================
 # LOGS
 # ============================================
-logs: ## Logs de tous les services
+logs: ## Logs from all services
 	docker compose logs -f
 
-logs-backend: ## Logs backend
+logs-backend: ## Backend logs
 	docker compose logs backend -f
 
-logs-scraping: ## Logs scraping
+logs-scraping: ## Scraping logs
 	docker compose logs scraping -f
 
-logs-consumer: ## Logs consumer
+logs-consumer: ## Consumer logs
 	docker compose logs consumer_odds -f
 
-logs-celery-worker: ## Logs celery worker
+logs-celery-worker: ## Celery worker logs
 	docker compose logs celery_worker --tail=50 -f
 
-logs-celery-beat: ## Logs celery beat
+logs-celery-beat: ## Celery beat logs
 	docker compose logs celery_beat --tail=50 -f
 
-logs-celery: ## Logs celery worker et beat
+logs-celery: ## Celery worker and beat logs
 	docker compose logs celery_worker celery_beat -f
 
-logs-rabbitmq: ## Logs RabbitMQ
+logs-rabbitmq: ## RabbitMQ logs
 	docker compose logs rabbitmq -f
 
-logs-all: ## Logs de tous les services
+logs-all: ## Logs from all services
 	docker compose logs -f --tail=50
 
 logs-front-symfony:
@@ -236,46 +236,46 @@ logs-front-php:
 # ============================================
 # SHELLS
 # ============================================
-shell-backend: ## Shell backend
+shell-backend: ## Backend shell
 	docker compose exec backend /bin/bash
 
-shell-scraping: ## Shell scraping
+shell-scraping: ## Scraping shell
 	docker compose exec scraping /bin/bash
 
-shell-db: ## Shell MySQL
+shell-db: ## MySQL shell
 	docker compose exec db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME)
 
-shell-db-root: ## Shell MySQL root
+shell-db-root: ## MySQL shell root
 	docker compose exec db mysql -uroot -p$(DB_ROOT_PASSWORD) $(DB_NAME)
 
-shell-python: ## Shell Python Django
+shell-python: ## Python Django shell
 	docker compose exec backend python manage.py shell
 
 # ============================================
 # DATABASE - SETUP
 # ============================================
-install-db: ## Installe la BDD complete
-	@echo "Installation de la base de donnees..."
+install-db: ## Install complete database
+	@echo "Installing database..."
 	docker compose exec -T db mysql -uroot -p$(DB_ROOT_PASSWORD) -e "CREATE DATABASE IF NOT EXISTS $(DB_NAME);"
 	docker compose exec -T db mysql -uroot -p$(DB_ROOT_PASSWORD) -e "GRANT ALL PRIVILEGES ON $(DB_NAME).* TO '$(DB_USER)'@'%';"
 	docker compose exec -T db mysql -uroot -p$(DB_ROOT_PASSWORD) -e "FLUSH PRIVILEGES;"
 	$(MAKE) migrate
 	$(MAKE) seed-all
-	@echo "Base de donnees installee avec succes"
+	@echo "Database installed successfully"
 
-reset-db: ## Reinitialise la BDD
-	@echo "ATTENTION: Suppression de toutes les donnees!"
-	@read -p "Continuer ? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+reset-db: ## Reset database
+	@echo "WARNING: Deleting all data!"
+	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
 	docker compose down
 	docker volume rm gig-benchmark_db_data || true
 	docker compose up -d db
-	@echo "Attente de la base de donnees..."
+	@echo "Waiting for database..."
 	@sleep 20
 	docker compose up -d
 	@sleep 10
 	$(MAKE) install-db
 
-check-db: ## Verifie la BDD
+check-db: ## Check database
 	docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "\
 	SELECT 'Sports' as Table_Name, COUNT(*) as Count FROM Sports \
 	UNION ALL SELECT 'Bookmakers', COUNT(*) FROM Bookmakers \
@@ -285,8 +285,8 @@ check-db: ## Verifie la BDD
 # ============================================
 # DATABASE - STATS
 # ============================================
-db-stats: ## Statistiques generales
-	@echo "Statistiques de la base de donnees"
+db-stats: ## General statistics
+	@echo "Database statistics"
 	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "\
 	SELECT 'Sports' as Table_Name, COUNT(*) as Count FROM Sports \
 	UNION ALL SELECT 'Ligues', COUNT(*) FROM Leagues \
@@ -295,7 +295,7 @@ db-stats: ## Statistiques generales
 	UNION ALL SELECT 'Bookmakers', COUNT(*) FROM Bookmakers \
 	UNION ALL SELECT 'Cotes', COUNT(*) FROM Odds;"
 
-db-matches: ## Liste tous les matchs
+db-matches: ## List all matches
 	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "\
 	SELECT m.id, l.name as Ligue, CONCAT(ht.name, ' - ', at.name) as Rencontre, \
 	DATE_FORMAT(m.match_date, '%Y-%m-%d %H:%i') as Date, m.status as Statut, \
@@ -307,7 +307,7 @@ db-matches: ## Liste tous les matchs
 	LEFT JOIN Odds o ON m.id = o.match_id \
 	GROUP BY m.id ORDER BY m.match_date;"
 
-db-bookmakers: ## Liste les bookmakers avec stats
+db-bookmakers: ## List bookmakers with stats
 	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "\
 	SELECT b.name as Bookmaker, COUNT(DISTINCT o.match_id) as Nb_Matchs, \
 	COUNT(o.id) as Nb_Cotes, ROUND(AVG(o.trj), 2) as TRJ_Moyen, \
@@ -315,7 +315,7 @@ db-bookmakers: ## Liste les bookmakers avec stats
 	FROM Bookmakers b LEFT JOIN Odds o ON b.id = o.bookmaker_id \
 	GROUP BY b.id ORDER BY TRJ_Moyen DESC;"
 
-db-odds: ## Dernieres cotes
+db-odds: ## Latest odds
 	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "\
 	SELECT CONCAT(ht.name, ' - ', at.name) as Rencontre, b.name as Bookmaker, \
 	o.outcome as Issue, o.odd_value as Cote, o.trj as TRJ, \
@@ -327,7 +327,7 @@ db-odds: ## Dernieres cotes
 	JOIN Bookmakers b ON o.bookmaker_id = b.id \
 	ORDER BY o.scraped_at DESC LIMIT 20;"
 
-db-best-trj: ## Meilleurs TRJ par match
+db-best-trj: ## Best TRJ per match
 	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "\
 	SELECT CONCAT(ht.name, ' - ', at.name) as Rencontre, b.name as Bookmaker, \
 	ROUND(AVG(o.trj), 2) as TRJ_Moyen, \
@@ -341,134 +341,134 @@ db-best-trj: ## Meilleurs TRJ par match
 	HAVING COUNT(o.id) = 3 \
 	ORDER BY TRJ_Moyen DESC LIMIT 10;"
 
-db-clean-odds: ## Supprime toutes les cotes
-	@echo "Suppression de toutes les cotes..."
+db-clean-odds: ## Delete all odds
+	@echo "Deleting all odds..."
 	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "TRUNCATE TABLE Odds;"
-	@echo "Cotes supprimees"
+	@echo "Odds deleted"
 
-db-query: ## Execute une requete SQL (usage: make db-query SQL="SELECT * FROM Sports")
+db-query: ## Execute SQL query (usage: make db-query SQL="SELECT * FROM Sports")
 	@if [ -z "$(SQL)" ]; then echo "Usage: make db-query SQL=\"SELECT * FROM Sports\""; exit 1; fi
 	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "$(SQL)"
 
 # ============================================
-# SCRAPING - MANUEL (212 scrapers disponibles)
+# SCRAPING - MANUAL (212 available scrapers)
 # ============================================
 
 # --- FOOTBALL (105 competitions) ---
-scrape-ligue1: ## Lance scraping Ligue 1
+scrape-ligue1: ## Launch scraping Ligue 1
 	docker compose exec backend python manage.py scrape football.ligue_1
 
-scrape-ligue2: ## Lance scraping Ligue 2
+scrape-ligue2: ## Launch scraping Ligue 2
 	docker compose exec backend python manage.py scrape football.ligue_2
 
-scrape-coupe-france: ## Lance scraping Coupe de France
+scrape-coupe-france: ## Launch scraping Coupe de France
 	docker compose exec backend python manage.py scrape football.coupe_de_france
 
-scrape-serie-a: ## Lance scraping Serie A
+scrape-serie-a: ## Launch scraping Serie A
 	docker compose exec backend python manage.py scrape football.serie_a
 
-scrape-premier-league: ## Lance scraping Premier League
+scrape-premier-league: ## Launch scraping Premier League
 	docker compose exec backend python manage.py scrape football.premier_league
 
-scrape-la-liga: ## Lance scraping La Liga
+scrape-la-liga: ## Launch scraping La Liga
 	docker compose exec backend python manage.py scrape football.la_liga
 
-scrape-bundesliga: ## Lance scraping Bundesliga
+scrape-bundesliga: ## Launch scraping Bundesliga
 	docker compose exec backend python manage.py scrape football.bundesliga
 
-scrape-champions-league: ## Lance scraping Champions League
+scrape-champions-league: ## Launch scraping Champions League
 	docker compose exec backend python manage.py scrape football.champions_league
 
-scrape-europa-league: ## Lance scraping Europa League
+scrape-europa-league: ## Launch scraping Europa League
 	docker compose exec backend python manage.py scrape football.ligue_europa
 
-scrape-conference-league: ## Lance scraping Conference League
+scrape-conference-league: ## Launch scraping Conference League
 	docker compose exec backend python manage.py scrape football.uefa_conference_league
 
-# --- TENNIS (89 tournois) ---
-scrape-atp-miami: ## Lance scraping ATP Miami
+# --- TENNIS (89 tournaments) ---
+scrape-atp-miami: ## Launch scraping ATP Miami
 	docker compose exec backend python manage.py scrape tennis.atp_miami
 
-scrape-wta-miami: ## Lance scraping WTA Miami
+scrape-wta-miami: ## Launch scraping WTA Miami
 	docker compose exec backend python manage.py scrape tennis.wta_miami
 
-scrape-roland-garros: ## Lance scraping Roland Garros (H+F)
+scrape-roland-garros: ## Launch scraping Roland Garros (H+F)
 	docker compose exec backend python manage.py scrape tennis.roland_garros_m
 	docker compose exec backend python manage.py scrape tennis.roland_garros_w
 
-scrape-wimbledon: ## Lance scraping Wimbledon (H+F)
+scrape-wimbledon: ## Launch scraping Wimbledon (H+F)
 	docker compose exec backend python manage.py scrape tennis.atp_wimbledon
 	docker compose exec backend python manage.py scrape tennis.wta_wimbledon
 
-scrape-us-open: ## Lance scraping US Open (H+F)
+scrape-us-open: ## Launch scraping US Open (H+F)
 	docker compose exec backend python manage.py scrape tennis.atp_us_open
 	docker compose exec backend python manage.py scrape tennis.wta_us_open
 
-# --- BASKETBALL (15 ligues) ---
-scrape-nba: ## Lance scraping NBA
+# --- BASKETBALL (15 leagues) ---
+scrape-nba: ## Launch scraping NBA
 	docker compose exec backend python manage.py scrape basketball.nba
 
-scrape-euroleague: ## Lance scraping Euroleague
+scrape-euroleague: ## Launch scraping Euroleague
 	docker compose exec backend python manage.py scrape basketball.euroligue
 
-scrape-betclic-elite: ## Lance scraping Betclic Elite
+scrape-betclic-elite: ## Launch scraping Betclic Elite
 	docker compose exec backend python manage.py scrape basketball.betclic_elite
 
 # --- RUGBY (3 competitions) ---
-scrape-top14: ## Lance scraping Top 14
+scrape-top14: ## Launch scraping Top 14
 	docker compose exec backend python manage.py scrape rugby.top_14
 
-scrape-pro-d2: ## Lance scraping Pro D2
+scrape-pro-d2: ## Launch scraping Pro D2
 	docker compose exec backend python manage.py scrape rugby.pro_d2
 
-# --- SCRAPING PAR SPORT ---
-scrape-all-football: ## Lance scraping toutes les 105 compétitions de football
-	@echo "Scraping de toutes les compétitions de football (105 total)..."
+# --- SCRAPING BY SPORT ---
+scrape-all-football: ## Launch scraping all 105 football competitions
+	@echo "Scraping all football competitions (105 total)..."
 	@for file in $$(find scraping/src/football -name "*.py" ! -name "__init__.py" ! -name "_scraper_utils.py" | sed 's|scraping/src/football/||' | sed 's|.py||' | sort); do \
 		echo "Scraping football.$$file..."; \
 		docker compose exec backend python manage.py scrape football.$$file; \
 		sleep 2; \
 	done
 
-scrape-all-tennis: ## Lance scraping tous les 89 tournois de tennis
-	@echo "Scraping de tous les tournois de tennis (89 total)..."
+scrape-all-tennis: ## Launch scraping all 89 tennis tournaments
+	@echo "Scraping all tennis tournaments (89 total)..."
 	@for file in $$(find scraping/src/tennis -name "*.py" ! -name "__init__.py" ! -name "_scraper_utils.py" | sed 's|scraping/src/tennis/||' | sed 's|.py||' | sort); do \
 		echo "Scraping tennis.$$file..."; \
 		docker compose exec backend python manage.py scrape tennis.$$file; \
 		sleep 2; \
 	done
 
-scrape-all-basketball: ## Lance scraping toutes les 15 ligues de basketball
-	@echo "Scraping de toutes les ligues de basketball (15 total)..."
+scrape-all-basketball: ## Launch scraping all 15 basketball leagues
+	@echo "Scraping all basketball leagues (15 total)..."
 	@for file in $$(find scraping/src/basketball -name "*.py" ! -name "__init__.py" ! -name "_scraper_utils.py" | sed 's|scraping/src/basketball/||' | sed 's|.py||' | sort); do \
 		echo "Scraping basketball.$$file..."; \
 		docker compose exec backend python manage.py scrape basketball.$$file; \
 		sleep 2; \
 	done
 
-scrape-all-rugby: ## Lance scraping toutes les 3 compétitions de rugby
-	@echo "Scraping de toutes les compétitions de rugby (3 total)..."
+scrape-all-rugby: ## Launch scraping all 3 rugby competitions
+	@echo "Scraping all rugby competitions (3 total)..."
 	@for file in $$(find scraping/src/rugby -name "*.py" ! -name "__init__.py" ! -name "_scraper_utils.py" | sed 's|scraping/src/rugby/||' | sed 's|.py||' | sort); do \
 		echo "Scraping rugby.$$file..."; \
 		docker compose exec backend python manage.py scrape rugby.$$file; \
 		sleep 2; \
 	done
 
-scrape-all: ## Lance scraping de TOUTES les 212 compétitions
-	@echo "ATTENTION: Cela va lancer 212 scrapers (peut prendre plusieurs heures)"
-	@read -p "Continuer ? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+scrape-all: ## Launch scraping of ALL 212 competitions
+	@echo "WARNING: This will launch 212 scrapers (may take several hours)"
+	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
 	$(MAKE) scrape-all-football
 	$(MAKE) scrape-all-tennis
 	$(MAKE) scrape-all-basketball
 	$(MAKE) scrape-all-rugby
 
 # --- SCRAPING CUSTOM ---
-scrape: ## Scrape une competition specifique (usage: make scrape LEAGUE=football.ligue_1)
+scrape: ## Scrape specific competition (usage: make scrape LEAGUE=football.ligue_1)
 	@if [ -z "$(LEAGUE)" ]; then echo "Usage: make scrape LEAGUE=football.ligue_1"; exit 1; fi
 	docker compose exec backend python manage.py scrape $(LEAGUE)
 
-scrape-list: ## Liste tous les scrapers disponibles (212 total)
-	@echo "Scrapers disponibles (212 total):"
+scrape-list: ## List all available scrapers (212 total)
+	@echo "Available scrapers (212 total):"
 	@echo ""
 	@echo "FOOTBALL (105):"
 	@echo "  football.ligue_1, football.ligue_2, football.premier_league, football.la_liga,"
@@ -488,49 +488,49 @@ scrape-list: ## Liste tous les scrapers disponibles (212 total)
 # ============================================
 # RABBITMQ
 # ============================================
-check-rabbitmq: ## Verifie RabbitMQ
+check-rabbitmq: ## Check RabbitMQ
 	@echo "RabbitMQ Management: http://localhost:15672"
 	@echo "User: $(RABBITMQ_USER) | Pass: $(RABBITMQ_PASSWORD)"
 	@docker compose exec rabbitmq rabbitmqctl list_queues
 
-rabbitmq-purge: ## Vide les queues
+rabbitmq-purge: ## Purge queues
 	docker compose exec rabbitmq rabbitmqctl purge_queue odds
 	docker compose exec rabbitmq rabbitmqctl purge_queue scraping_tasks
 
 # ============================================
 # HEALTH CHECK
 # ============================================
-health: ## Health check complet
-	@echo "Health Check..."
+health: ## Complete health check
+	@echo "Health check..."
 	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) -e "SELECT 'MySQL OK';" 2>/dev/null && echo "MySQL: OK" || echo "MySQL: ERROR"
 	@docker compose exec rabbitmq rabbitmqctl status > /dev/null 2>&1 && echo "RabbitMQ: OK" || echo "RabbitMQ: ERROR"
 	@curl -s http://localhost:$(BACKEND_PORT)/api/scraping/health > /dev/null && echo "Backend: OK" || echo "Backend: ERROR"
 
 # ============================================
-# WORKFLOW COMPLET
+# COMPLETE WORKFLOW
 # ============================================
-init: ## Initialisation complete du projet
+init: ## Complete project initialization
 	$(MAKE) build
 	$(MAKE) up
 	@sleep 20
 	$(MAKE) install-db
-	@echo "Projet initialise avec succes"
+	@echo "Project initialized successfully"
 
-demo: ## Demo complete
-	@echo "Demo complete"
-	@echo "1. Lancement du scraping..."
+demo: ## Complete demo
+	@echo "Complete demo"
+	@echo "1. Launching scraping..."
 	$(MAKE) scrape-ligue1
 	@sleep 30
-	@echo "2. Statistiques:"
+	@echo "2. Statistics:"
 	$(MAKE) db-stats
-	@echo "3. Meilleurs TRJ:"
+	@echo "3. Best TRJ:"
 	$(MAKE) db-best-trj
 
-status: ## Affiche le statut complet
-	@echo "Statut des services:"
+status: ## Show complete status
+	@echo "Services status:"
 	$(MAKE) ps
 	@echo ""
-	@echo "Statistiques de la base:"
+	@echo "Database statistics:"
 	$(MAKE) db-stats
 	@echo ""
 	@echo "Health check:"
@@ -538,24 +538,24 @@ status: ## Affiche le statut complet
 # ============================================
 # AUTO SCRAPING
 # ============================================
-auto-scrape-status: ## Statut du scraping automatique
-	@echo "Taches periodiques actives:"
+auto-scrape-status: ## Auto scraping status
+	@echo "Active periodic tasks:"
 	@docker compose exec backend python manage.py shell -c "from django_celery_beat.models import PeriodicTask; [print(f'{t.name}: enabled={t.enabled}') for t in PeriodicTask.objects.all()]"
 
-auto-scrape-enable: ## Active le scraping automatique
-	@echo "Activation du scraping automatique..."
+auto-scrape-enable: ## Enable auto scraping
+	@echo "Enabling auto scraping..."
 	@docker compose exec backend python manage.py shell -c "from django_celery_beat.models import PeriodicTask; t=PeriodicTask.objects.get(name='Scraping automatique toutes les 6h'); t.enabled=True; t.save(); print('ACTIVE')"
 	@docker compose restart celery_beat > /dev/null 2>&1
 
-auto-scrape-disable: ## Desactive le scraping automatique
-	@echo "Desactivation du scraping automatique..."
+auto-scrape-disable: ## Disable auto scraping
+	@echo "Disabling auto scraping..."
 	@docker compose exec backend python manage.py shell -c "from django_celery_beat.models import PeriodicTask; t=PeriodicTask.objects.get(name='Scraping automatique toutes les 6h'); t.enabled=False; t.save(); print('DESACTIVE')"
 	@docker compose restart celery_beat > /dev/null 2>&1
 
-auto-scrape-test: ## Lance un scraping automatique immediatement
-	@echo "Lancement du scraping..."
+auto-scrape-test: ## Launch auto scraping immediately
+	@echo "Launching scraping..."
 	@docker compose exec backend python manage.py shell -c "from core.tasks import auto_scrape_all_leagues; r=auto_scrape_all_leagues.delay(); print(f'Task ID: {r.id}')"
-	@echo "Suivre: sudo make logs-celery-worker"
+	@echo "Follow: sudo make logs-celery-worker"
 
-auto-scrape-logs: ## Logs du scraping automatique
+auto-scrape-logs: ## Auto scraping logs
 	@docker compose logs celery_worker celery_beat --tail=50 -f

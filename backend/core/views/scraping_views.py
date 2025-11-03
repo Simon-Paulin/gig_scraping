@@ -16,11 +16,11 @@ RABBITMQ_PASSWORD = os.environ.get('RABBITMQ_PASSWORD', 'gig_password_2025')
 
 def send_scraping_task(scraper_name):
     """
-    Envoie une tâche de scraping dans la queue RabbitMQ
+    Send scraping task to RabbitMQ queue
     """
     try:
-        print(f"🔌 Connexion à RabbitMQ: {RABBITMQ_HOST}:{RABBITMQ_PORT}")
-        
+        print(f"Connecting to RabbitMQ: {RABBITMQ_HOST}:{RABBITMQ_PORT}")
+
         credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
         connection = pika.BlockingConnection(
             pika.ConnectionParameters(
@@ -31,13 +31,13 @@ def send_scraping_task(scraper_name):
                 retry_delay=2
             )
         )
-        
-        print("✅ Connecté à RabbitMQ")
-        
+
+        print("Connected to RabbitMQ")
+
         channel = connection.channel()
         channel.queue_declare(queue='scraping_tasks', durable=True)
-        
-        print(f"📦 Queue 'scraping_tasks' déclarée")
+
+        print(f"Queue 'scraping_tasks' declared")
 
         message = json.dumps({'scraper': scraper_name, 'params': {}})
         channel.basic_publish(
@@ -46,13 +46,13 @@ def send_scraping_task(scraper_name):
             body=message,
             properties=pika.BasicProperties(delivery_mode=2)
         )
-        
-        print(f"✅ Tâche envoyée: {scraper_name}")
+
+        print(f"Task sent: {scraper_name}")
         connection.close()
         return True
         
     except Exception as e:
-        print(f"❌ Erreur envoi task: {type(e).__name__}: {str(e)}")
+        print(f" Erreur envoi task: {type(e).__name__}: {str(e)}")
         import traceback
         traceback.print_exc()
         return False
@@ -79,17 +79,17 @@ def trigger_scraping(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    # Envoie la tâche dans RabbitMQ
+    # Send task to RabbitMQ
     success = send_scraping_task(scraper)
-    
+
     if success:
         return Response({
             'success': True,
-            'message': f'Scraping {scraper} lancé avec succès'
+            'message': f'Scraping {scraper} launched successfully'
         })
     else:
         return Response(
-            {'success': False, 'error': 'Erreur lors de l\'envoi de la tâche'}, 
+            {'success': False, 'error': 'Error sending task'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 

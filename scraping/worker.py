@@ -475,7 +475,7 @@ SCRAPERS_REGISTRY['rugby.test_match'] = scrape_test_match
 
 
 def connect_rabbitmq(max_retries=10, retry_delay=5):
-    """Connexion à RabbitMQ avec retry"""
+    """Connecting to RabbitMQ avec retry"""
     for attempt in range(1, max_retries + 1):
         try:
             print(f"Tentative de connexion à RabbitMQ ({attempt}/{max_retries})...")
@@ -489,7 +489,7 @@ def connect_rabbitmq(max_retries=10, retry_delay=5):
                     blocked_connection_timeout=300
                 )
             )
-            print("Connecté à RabbitMQ")
+            print("Connected to RabbitMQ")
             return connection
         except Exception as e:
             print(f"Erreur connexion RabbitMQ (tentative {attempt}/{max_retries}): {e}")
@@ -497,7 +497,7 @@ def connect_rabbitmq(max_retries=10, retry_delay=5):
                 print(f"Nouvelle tentative dans {retry_delay}s...")
                 time.sleep(retry_delay)
             else:
-                print("Échec de connexion après toutes les tentatives")
+                print("Failure de connexion après toutes les tentatives")
                 raise
 
 
@@ -539,9 +539,9 @@ def callback(ch, method, properties, body):
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
             return
         
-        # Récupérer et exécuter le scraper
+        # Get et exécuter le scraper
         scraper_func = SCRAPERS_REGISTRY[scraper_name]
-        print(f"Démarrage du scraper: {scraper_name}")
+        print(f"Starting du scraper: {scraper_name}")
         print(f"{'='*60}\n")
         
         start_time = time.time()
@@ -552,7 +552,7 @@ def callback(ch, method, properties, body):
         print(f"SCRAPING TERMINÉ")
         print(f"{'='*60}")
         print(f"Durée: {elapsed_time:.2f}s")
-        print(f"Résultat: {result}")
+        print(f"Result: {result}")
         print(f"{'='*60}\n")
         
         # Acquitter le message (succès)
@@ -601,7 +601,7 @@ def get_scrapers_by_sport():
 def print_startup_banner():
     """Affiche la bannière de démarrage"""
     print("\n" + "="*60)
-    print("WORKER DE SCRAPING MULTI-SPORTS - GIG BENCHMARK")
+    print("SCRAPING WORKER MULTI-SPORTS - GIG BENCHMARK")
     print("="*60)
     print(f"RabbitMQ Host: {RABBITMQ_HOST}")
     print(f"RabbitMQ User: {RABBITMQ_USER}")
@@ -615,7 +615,7 @@ def print_startup_banner():
         if scrapers:
             print(f"\n{sport} ({len(scrapers)}):")
             for scraper in sorted(scrapers)[:5]:  # Afficher les 5 premiers
-                print(f"   ✓ {scraper}")
+                print(f"    {scraper}")
             if len(scrapers) > 5:
                 print(f"   ... et {len(scrapers) - 5} autres")
     
@@ -639,7 +639,7 @@ def main():
     """Fonction principale du worker"""
     print_startup_banner()
     
-    # Connexion à RabbitMQ
+    # Connecting to RabbitMQ
     connection = connect_rabbitmq()
     channel = connection.channel()
     

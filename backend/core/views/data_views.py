@@ -59,15 +59,15 @@ def get_odds_with_filters(request):
         if sport_id and sport_id != 'all':
             odds = odds.filter(match__league__sport__id=int(sport_id))
         if bookmaker_id and bookmaker_id != 'all':
-            bookmaker_ids = [int(bid) for bid in bookmaker_id.split(',')]  # ✅ Convertir en int
+            bookmaker_ids = [int(bid) for bid in bookmaker_id.split(',')]  #  Convertir en int
             odds = odds.filter(bookmaker__id__in=bookmaker_ids)
         if league_id and league_id != 'all':
-            league_ids = [int(lid) for lid in league_id.split(',')]  # ✅ Convertir en int
+            league_ids = [int(lid) for lid in league_id.split(',')]  #  Convertir en int
             odds = odds.filter(match__league__id__in=league_ids)
         if match_id and match_id != 'all':
             odds = odds.filter(match__id=match_id)
         if start_date and end_date:
-            # ✅ Filtrer sur match__match_date au lieu de scraped_at
+            #  Filtrer sur match__match_date au lieu de scraped_at
             start_dt = timezone.make_aware(datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S'))
             end_dt = timezone.make_aware(datetime.strptime(end_date, '%Y-%m-%d %H:%M:%S'))
             odds = odds.filter(match__match_date__range=[start_dt, end_dt])
@@ -105,7 +105,7 @@ def get_avg_trj(request):
         if match_id and match_id != 'all':
             odds = odds.filter(match__id=match_id)
         if start_date and end_date:
-            # ✅ Filtrer sur match__match_date
+            #  Filtrer sur match__match_date
             start_dt = timezone.make_aware(datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S'))
             end_dt = timezone.make_aware(datetime.strptime(end_date, '%Y-%m-%d %H:%M:%S'))
             odds = odds.filter(match__match_date__range=[start_dt, end_dt])
@@ -231,20 +231,20 @@ def get_avg_trj_with_evolution(request):
             end_dt = timezone.make_aware(datetime.strptime(end_date, '%Y-%m-%d %H:%M:%S'))
             odds = odds.filter(match__match_date__range=[start_dt, end_dt])
 
-        # ✅ Récupère les 2 dernières HEURES de scraping (pas les secondes exactes)
+        #  Récupère les 2 dernières HEURES de scraping (pas les secondes exactes)
         distinct_hours = odds.annotate(
             scraped_hour=TruncHour('scraped_at')
         ).values('scraped_hour').distinct().order_by('-scraped_hour')[:2]
         
         if not distinct_hours or len(distinct_hours) == 0:
-            print("❌ Aucune donnée de scraping trouvée")
+            print(" Aucune donnée de scraping trouvée")
             return Response([])
         
         latest_hour = distinct_hours[0]['scraped_hour']
         previous_hour = distinct_hours[1]['scraped_hour'] if len(distinct_hours) > 1 else None
 
-        print(f"📅 Latest scraping hour: {latest_hour}")
-        print(f"📅 Previous scraping hour: {previous_hour}")
+        print(f" Latest scraping hour: {latest_hour}")
+        print(f" Previous scraping hour: {previous_hour}")
 
         # Calcule la moyenne pour la dernière heure de scraping
         current_avg = odds.annotate(
@@ -253,7 +253,7 @@ def get_avg_trj_with_evolution(request):
             'bookmaker__id', 'bookmaker__name'
         ).annotate(avg_trj=Avg('trj'))
 
-        print(f"📊 Current avg - Nombre de bookmakers: {current_avg.count()}")
+        print(f" Current avg - Nombre de bookmakers: {current_avg.count()}")
 
         # Calcule la moyenne pour l'avant-dernière heure
         previous_avg_dict = {}
@@ -265,7 +265,7 @@ def get_avg_trj_with_evolution(request):
             ).annotate(avg_trj=Avg('trj'))
             
             previous_avg_dict = {item['bookmaker__id']: item['avg_trj'] for item in previous_avg}
-            print(f"📊 Previous avg - Nombre de bookmakers: {len(previous_avg_dict)}")
+            print(f" Previous avg - Nombre de bookmakers: {len(previous_avg_dict)}")
 
         # Combine les résultats
         result = []
@@ -280,13 +280,13 @@ def get_avg_trj_with_evolution(request):
                 'previous_avg_trj': round(previous_avg_trj, 2) if previous_avg_trj else None,
             })
         
-        print(f"✅ Résultat final - {len(result)} bookmakers:")
+        print(f" Résultat final - {len(result)} bookmakers:")
         for item in result:
             print(f"   - {item['bookmaker__name']}: {item['avg_trj']}% (previous: {item['previous_avg_trj']}%)")
         
         return Response(result)
     
     except Exception as e:
-        print(f"❌ Error in get_avg_trj_with_evolution: {str(e)}")
+        print(f" Error in get_avg_trj_with_evolution: {str(e)}")
         traceback.print_exc()
         return Response({'error': str(e)}, status=500)
