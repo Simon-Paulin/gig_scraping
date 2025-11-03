@@ -351,35 +351,139 @@ db-query: ## Execute une requete SQL (usage: make db-query SQL="SELECT * FROM Sp
 	@docker compose exec -T db mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "$(SQL)"
 
 # ============================================
-# SCRAPING
+# SCRAPING - MANUEL (212 scrapers disponibles)
 # ============================================
+
+# --- FOOTBALL (105 competitions) ---
 scrape-ligue1: ## Lance scraping Ligue 1
-	docker compose exec scraping python send_task.py football.ligue_1
+	docker compose exec backend python manage.py scrape football.ligue_1
 
-scrape-serie_a: ## Lance scraping Serie A
-	docker compose exec scraping python send_task.py football.serie_a
+scrape-ligue2: ## Lance scraping Ligue 2
+	docker compose exec backend python manage.py scrape football.ligue_2
 
-scrape-premier_league: ## Lance scraping Premier League
-	docker compose exec scraping python send_task.py football.premier_league
+scrape-coupe-france: ## Lance scraping Coupe de France
+	docker compose exec backend python manage.py scrape football.coupe_de_france
 
-scrape-liga: ## Lance scraping La Liga
-	docker compose exec scraping python send_task.py football.la_liga
+scrape-serie-a: ## Lance scraping Serie A
+	docker compose exec backend python manage.py scrape football.serie_a
+
+scrape-premier-league: ## Lance scraping Premier League
+	docker compose exec backend python manage.py scrape football.premier_league
+
+scrape-la-liga: ## Lance scraping La Liga
+	docker compose exec backend python manage.py scrape football.la_liga
 
 scrape-bundesliga: ## Lance scraping Bundesliga
-	docker compose exec scraping python send_task.py football.bundesliga
+	docker compose exec backend python manage.py scrape football.bundesliga
 
-scrape-champions-League: ## Lance scraping CL
-	docker compose exec scraping python send_task.py football.champions_league
+scrape-champions-league: ## Lance scraping Champions League
+	docker compose exec backend python manage.py scrape football.champions_league
 
-scrape-europa-League: ## Lance scraping EL
-	docker compose exec scraping python send_task.py football.europa_league
+scrape-europa-league: ## Lance scraping Europa League
+	docker compose exec backend python manage.py scrape football.ligue_europa
 
-scrape-all: ## Lance scraping toutes les ligues
-	$(MAKE) scrape-ligue1
-	$(MAKE) scrape-premier_league
-	$(MAKE) scrape-liga
-	$(MAKE) scrape-serie_a
-	$(MAKE) scrape-bundesliga
+scrape-conference-league: ## Lance scraping Conference League
+	docker compose exec backend python manage.py scrape football.uefa_conference_league
+
+# --- TENNIS (89 tournois) ---
+scrape-atp-miami: ## Lance scraping ATP Miami
+	docker compose exec backend python manage.py scrape tennis.atp_miami
+
+scrape-wta-miami: ## Lance scraping WTA Miami
+	docker compose exec backend python manage.py scrape tennis.wta_miami
+
+scrape-roland-garros: ## Lance scraping Roland Garros (H+F)
+	docker compose exec backend python manage.py scrape tennis.roland_garros_m
+	docker compose exec backend python manage.py scrape tennis.roland_garros_w
+
+scrape-wimbledon: ## Lance scraping Wimbledon (H+F)
+	docker compose exec backend python manage.py scrape tennis.atp_wimbledon
+	docker compose exec backend python manage.py scrape tennis.wta_wimbledon
+
+scrape-us-open: ## Lance scraping US Open (H+F)
+	docker compose exec backend python manage.py scrape tennis.atp_us_open
+	docker compose exec backend python manage.py scrape tennis.wta_us_open
+
+# --- BASKETBALL (15 ligues) ---
+scrape-nba: ## Lance scraping NBA
+	docker compose exec backend python manage.py scrape basketball.nba
+
+scrape-euroleague: ## Lance scraping Euroleague
+	docker compose exec backend python manage.py scrape basketball.euroligue
+
+scrape-betclic-elite: ## Lance scraping Betclic Elite
+	docker compose exec backend python manage.py scrape basketball.betclic_elite
+
+# --- RUGBY (3 competitions) ---
+scrape-top14: ## Lance scraping Top 14
+	docker compose exec backend python manage.py scrape rugby.top_14
+
+scrape-pro-d2: ## Lance scraping Pro D2
+	docker compose exec backend python manage.py scrape rugby.pro_d2
+
+# --- SCRAPING PAR SPORT ---
+scrape-all-football: ## Lance scraping toutes les 105 compétitions de football
+	@echo "Scraping de toutes les compétitions de football (105 total)..."
+	@for file in $$(find scraping/src/football -name "*.py" ! -name "__init__.py" ! -name "_scraper_utils.py" | sed 's|scraping/src/football/||' | sed 's|.py||' | sort); do \
+		echo "Scraping football.$$file..."; \
+		docker compose exec backend python manage.py scrape football.$$file; \
+		sleep 2; \
+	done
+
+scrape-all-tennis: ## Lance scraping tous les 89 tournois de tennis
+	@echo "Scraping de tous les tournois de tennis (89 total)..."
+	@for file in $$(find scraping/src/tennis -name "*.py" ! -name "__init__.py" ! -name "_scraper_utils.py" | sed 's|scraping/src/tennis/||' | sed 's|.py||' | sort); do \
+		echo "Scraping tennis.$$file..."; \
+		docker compose exec backend python manage.py scrape tennis.$$file; \
+		sleep 2; \
+	done
+
+scrape-all-basketball: ## Lance scraping toutes les 15 ligues de basketball
+	@echo "Scraping de toutes les ligues de basketball (15 total)..."
+	@for file in $$(find scraping/src/basketball -name "*.py" ! -name "__init__.py" ! -name "_scraper_utils.py" | sed 's|scraping/src/basketball/||' | sed 's|.py||' | sort); do \
+		echo "Scraping basketball.$$file..."; \
+		docker compose exec backend python manage.py scrape basketball.$$file; \
+		sleep 2; \
+	done
+
+scrape-all-rugby: ## Lance scraping toutes les 3 compétitions de rugby
+	@echo "Scraping de toutes les compétitions de rugby (3 total)..."
+	@for file in $$(find scraping/src/rugby -name "*.py" ! -name "__init__.py" ! -name "_scraper_utils.py" | sed 's|scraping/src/rugby/||' | sed 's|.py||' | sort); do \
+		echo "Scraping rugby.$$file..."; \
+		docker compose exec backend python manage.py scrape rugby.$$file; \
+		sleep 2; \
+	done
+
+scrape-all: ## Lance scraping de TOUTES les 212 compétitions
+	@echo "ATTENTION: Cela va lancer 212 scrapers (peut prendre plusieurs heures)"
+	@read -p "Continuer ? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	$(MAKE) scrape-all-football
+	$(MAKE) scrape-all-tennis
+	$(MAKE) scrape-all-basketball
+	$(MAKE) scrape-all-rugby
+
+# --- SCRAPING CUSTOM ---
+scrape: ## Scrape une competition specifique (usage: make scrape LEAGUE=football.ligue_1)
+	@if [ -z "$(LEAGUE)" ]; then echo "Usage: make scrape LEAGUE=football.ligue_1"; exit 1; fi
+	docker compose exec backend python manage.py scrape $(LEAGUE)
+
+scrape-list: ## Liste tous les scrapers disponibles (212 total)
+	@echo "Scrapers disponibles (212 total):"
+	@echo ""
+	@echo "FOOTBALL (105):"
+	@echo "  football.ligue_1, football.ligue_2, football.premier_league, football.la_liga,"
+	@echo "  football.serie_a, football.bundesliga, football.champions_league, ..."
+	@echo ""
+	@echo "TENNIS (89):"
+	@echo "  tennis.atp_miami, tennis.wta_miami, tennis.roland_garros_m, tennis.atp_wimbledon, ..."
+	@echo ""
+	@echo "BASKETBALL (15):"
+	@echo "  basketball.nba, basketball.euroligue, basketball.betclic_elite, ..."
+	@echo ""
+	@echo "RUGBY (3):"
+	@echo "  rugby.top_14, rugby.pro_d2, rugby.test_match"
+	@echo ""
+	@echo "Usage: make scrape LEAGUE=<scraper_key>"
 
 # ============================================
 # RABBITMQ
