@@ -47,7 +47,7 @@
                        └────────┬─────────┘
                                 │
                                 ▼
-                         Scrapes coteur.com
+                         Scrapes exemple.com
 ```
 
 ---
